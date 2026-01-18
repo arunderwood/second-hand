@@ -1,22 +1,51 @@
 """Tests for FastAPI application endpoints."""
 
+from collections.abc import Generator
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
+from pychrony.testing import make_tracking
+
+from second_hand.services.chrony import ChronyData
+
+
+@pytest.fixture
+def mock_fetch_chrony_data() -> Generator[ChronyData, None, None]:
+    """Mock fetch_chrony_data to avoid connecting to chronyd."""
+    mock_data = ChronyData(
+        tracking=make_tracking(),
+        sources=[],
+        source_stats=[],
+        rtc=None,
+        error=None,
+    )
+    with patch(
+        "second_hand.components.dashboard.fetch_chrony_data", return_value=mock_data
+    ):
+        yield mock_data
 
 
 class TestDashboardEndpoint:
     """Tests for the dashboard endpoint."""
 
-    def test_get_dashboard_returns_200(self, client: TestClient) -> None:
+    def test_get_dashboard_returns_200(
+        self, client: TestClient, mock_fetch_chrony_data: ChronyData
+    ) -> None:
         """GET / should return 200 status code."""
         response = client.get("/")
         assert response.status_code == 200
 
-    def test_get_dashboard_returns_html(self, client: TestClient) -> None:
+    def test_get_dashboard_returns_html(
+        self, client: TestClient, mock_fetch_chrony_data: ChronyData
+    ) -> None:
         """GET / should return HTML content type."""
         response = client.get("/")
         assert "text/html" in response.headers["content-type"]
 
-    def test_get_dashboard_contains_title(self, client: TestClient) -> None:
+    def test_get_dashboard_contains_title(
+        self, client: TestClient, mock_fetch_chrony_data: ChronyData
+    ) -> None:
         """GET / should return page with second-hand title."""
         response = client.get("/")
         assert "second-hand" in response.text
