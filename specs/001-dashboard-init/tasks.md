@@ -28,12 +28,12 @@ Based on plan.md structure:
 
 **Purpose**: Create project structure and configure tooling
 
-- [ ] T001 Create directory structure per plan.md: src/second_hand/, src/second_hand/components/, src/static/css/, tests/
-- [ ] T002 Create pyproject.toml with dependencies: fastapi, uvicorn, htpy, pydantic-settings, pytest, pytest-cov, httpx
-- [ ] T003 [P] Create src/second_hand/__init__.py with version metadata
-- [ ] T004 [P] Create tests/__init__.py
-- [ ] T005 [P] Configure ruff in pyproject.toml (linting and formatting)
-- [ ] T006 [P] Configure ty in pyproject.toml (type checking)
+- [x] T001 Create directory structure per plan.md: src/second_hand/, src/second_hand/components/, src/static/css/, tests/
+- [x] T002 Create pyproject.toml with dependencies: fastapi, uvicorn, htpy, pydantic-settings, pytest, pytest-cov, httpx
+- [x] T003 [P] Create src/second_hand/__init__.py with version metadata
+- [x] T004 [P] Create tests/__init__.py
+- [x] T005 [P] Configure ruff in pyproject.toml (linting and formatting)
+- [x] T006 [P] Configure ty in pyproject.toml (type checking)
 
 ---
 
@@ -43,9 +43,9 @@ Based on plan.md structure:
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Implement Settings model with pydantic-settings in src/second_hand/config.py
-- [ ] T008 Create base FastAPI application in src/second_hand/main.py (empty routes, static mount)
-- [ ] T009 [P] Create tests/conftest.py with pytest fixtures (test client, settings)
+- [x] T007 Implement Settings model with pydantic-settings in src/second_hand/config.py
+- [x] T008 Create base FastAPI application in src/second_hand/main.py (empty routes, static mount)
+- [x] T009 [P] Create tests/conftest.py with pytest fixtures (test client, settings)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -59,19 +59,19 @@ Based on plan.md structure:
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Create test for base layout component in tests/test_components.py
-- [ ] T011 [P] [US1] Create test for dashboard page component in tests/test_components.py
-- [ ] T012 [P] [US1] Create test for GET / endpoint returns 200 with HTML in tests/test_main.py
+- [x] T010 [P] [US1] Create test for base layout component in tests/test_components.py
+- [x] T011 [P] [US1] Create test for dashboard page component in tests/test_components.py
+- [x] T012 [P] [US1] Create test for GET / endpoint returns 200 with HTML in tests/test_main.py
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Create base layout htpy component in src/second_hand/components/__init__.py
-- [ ] T014 [P] [US1] Create base layout htpy component in src/second_hand/components/base.py
-- [ ] T015 [US1] Create dashboard page htpy component in src/second_hand/components/dashboard.py
-- [ ] T016 [US1] Implement GET / route returning dashboard HTML in src/second_hand/main.py
-- [ ] T017 [US1] Create responsive CSS with modern, sharp styling in src/static/css/style.css
-- [ ] T018 [US1] Add health check endpoint GET /health in src/second_hand/main.py
-- [ ] T019 [US1] Add 404 error handler returning styled error page in src/second_hand/main.py
+- [x] T013 [P] [US1] Create base layout htpy component in src/second_hand/components/__init__.py
+- [x] T014 [P] [US1] Create base layout htpy component in src/second_hand/components/base.py
+- [x] T015 [US1] Create dashboard page htpy component in src/second_hand/components/dashboard.py
+- [x] T016 [US1] Implement GET / route returning dashboard HTML in src/second_hand/main.py
+- [x] T017 [US1] Create responsive CSS with modern, sharp styling in src/static/css/style.css
+- [x] T018 [US1] Add health check endpoint GET /health in src/second_hand/main.py
+- [x] T019 [US1] Add 404 error handler returning styled error page in src/second_hand/main.py
 
 **Checkpoint**: Dashboard displays at http://localhost:8000 with placeholder content and responsive styling
 
@@ -85,9 +85,9 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Verify uvicorn --reload works with htpy components (manual test, document in quickstart)
-- [ ] T021 [US2] Add dev mode instructions to pyproject.toml scripts section
-- [ ] T022 [US2] Create test for production vs development mode configuration in tests/test_config.py
+- [x] T020 [US2] Verify uvicorn --reload works with htpy components (manual test, document in quickstart)
+- [x] T021 [US2] Add dev mode instructions to pyproject.toml scripts section
+- [x] T022 [US2] Create test for production vs development mode configuration in tests/test_config.py
 
 **Checkpoint**: Code changes reflect in browser after refresh without server restart
 
@@ -101,10 +101,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T023 [P] [US3] Create GitHub Actions CI workflow in .github/workflows/ci.yml
-- [ ] T024 [P] [US3] Configure pytest-cov in pyproject.toml for coverage reporting
-- [ ] T025 [US3] Add ty type checking step to CI workflow in .github/workflows/ci.yml
-- [ ] T026 [US3] Add Python version matrix (3.14, 3.13, 3.12) to CI workflow
+- [x] T023 [P] [US3] Create GitHub Actions CI workflow in .github/workflows/ci.yml
+- [x] T024 [P] [US3] Configure pytest-cov in pyproject.toml for coverage reporting
+- [x] T025 [US3] Add ty type checking step to CI workflow in .github/workflows/ci.yml
+- [x] T026 [US3] Add Python version matrix (3.14, 3.13, 3.12) to CI workflow
 
 **Checkpoint**: `pytest` passes locally; CI runs tests on push with type checking
 
@@ -118,10 +118,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T027 [P] [US4] Create README.md with project mission and overview
-- [ ] T028 [P] [US4] Add Getting Started section to README.md (prerequisites, install, run)
-- [ ] T029 [US4] Add Development section to README.md (dev mode, testing, linting)
-- [ ] T030 [US4] Create .github/dependabot.yml for daily Python updates (no PR limit)
+- [x] T027 [P] [US4] Create README.md with project mission and overview
+- [x] T028 [P] [US4] Add Getting Started section to README.md (prerequisites, install, run)
+- [x] T029 [US4] Add Development section to README.md (dev mode, testing, linting)
+- [x] T030 [US4] Create .github/dependabot.yml for daily Python updates (no PR limit)
 
 **Checkpoint**: New contributor can follow README and have dashboard running
 
@@ -131,11 +131,11 @@ Based on plan.md structure:
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T031 Run ty type checking on entire codebase: `ty check src/`
-- [ ] T032 Run ruff linting and formatting: `ruff check . && ruff format .`
-- [ ] T033 Verify all tests pass with coverage: `pytest --cov=second_hand`
-- [ ] T034 Validate quickstart.md checklist against actual project
-- [ ] T035 Test responsive design at 320px, 768px, 1920px viewport widths
+- [x] T031 Run ty type checking on entire codebase: `ty check src/`
+- [x] T032 Run ruff linting and formatting: `ruff check . && ruff format .`
+- [x] T033 Verify all tests pass with coverage: `pytest --cov=second_hand`
+- [x] T034 Validate quickstart.md checklist against actual project
+- [x] T035 Test responsive design at 320px, 768px, 1920px viewport widths
 
 ---
 

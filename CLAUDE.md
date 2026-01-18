@@ -25,19 +25,32 @@ tests/
 
 ```bash
 # Development
-uvicorn second_hand.main:app --reload
+uv run uvicorn second_hand.main:app --reload
 
 # Testing
-pytest
-pytest --cov=second_hand
+uv run pytest
+uv run pytest --cov=second_hand
 
 # Type checking
-ty check src/
+uv run ty check src/
 
 # Linting
-ruff check .
-ruff format .
+uv run ruff check .
+uv run ruff format .
 ```
+
+## Pre-Commit Requirements
+
+Run all quality checks before every git commit:
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run ty check src/
+uv run pytest
+```
+
+All checks must pass before committing.
 
 ## Code Style
 

@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - Python 3.14 (or 3.13/3.12 for compatibility testing)
-- uv (recommended) or pip
+- [uv](https://docs.astral.sh/uv/) package manager
 - Git
 
 ## Installation
@@ -19,45 +19,20 @@ git clone https://github.com/arunderwood/second-hand.git
 cd second-hand
 ```
 
-### 2. Create virtual environment (using uv - recommended)
+### 2. Install dependencies
 
 ```bash
-uv venv --python 3.14
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv sync --all-extras
 ```
 
-Or with standard Python:
-
-```bash
-python3.14 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-uv pip install -e ".[dev]"
-```
-
-Or with pip:
-
-```bash
-pip install -e ".[dev]"
-```
-
-### 4. Install development tools
-
-```bash
-uv tool install ty@latest  # Astral's fast type checker
-uv tool install ruff       # Astral's linter
-```
+This creates a virtual environment and installs all dependencies automatically.
 
 ## Running the Application
 
 ### Development mode (with hot-reload)
 
 ```bash
-uvicorn second_hand.main:app --reload
+uv run uvicorn second_hand.main:app --reload
 ```
 
 The dashboard will be available at http://localhost:8000
@@ -65,40 +40,32 @@ The dashboard will be available at http://localhost:8000
 ### Production mode
 
 ```bash
-uvicorn second_hand.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn second_hand.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Type Checking
 
-Run ty for fast type checking:
-
 ```bash
-ty check src/
-```
-
-Or check the entire project:
-
-```bash
-ty check .
+uv run ty check src/
 ```
 
 ## Running Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
 With coverage:
 
 ```bash
-pytest --cov=second_hand --cov-report=term-missing
+uv run pytest --cov=second_hand --cov-report=term-missing
 ```
 
 ## Linting
 
 ```bash
-ruff check .
-ruff format .
+uv run ruff check .
+uv run ruff format .
 ```
 
 ## Configuration
@@ -134,21 +101,21 @@ second-hand/
 
 1. Make changes to source files (components are Python, not templates!)
 2. Browser auto-refreshes when using `--reload`
-3. Run `ty check src/` for type validation
-4. Run `pytest` to verify changes
-5. Run `ruff check .` for linting
+3. Run `uv run ty check src/` for type validation
+4. Run `uv run pytest` to verify changes
+5. Run `uv run ruff check .` for linting
 6. Commit and push to trigger CI
 
 ## Verification Checklist
 
 After setup, verify:
 
-- [ ] `uvicorn second_hand.main:app --reload` starts without errors
+- [ ] `uv run uvicorn second_hand.main:app --reload` starts without errors
 - [ ] http://localhost:8000 displays the dashboard
-- [ ] `ty check src/` reports no type errors
-- [ ] `pytest` runs and all tests pass
+- [ ] `uv run ty check src/` reports no type errors
+- [ ] `uv run pytest` runs and all tests pass
 - [ ] Modifying a component and refreshing shows changes (dev mode)
-- [ ] `ruff check .` passes with no errors
+- [ ] `uv run ruff check .` passes with no errors
 
 ## Why htpy Instead of Jinja2?
 
