@@ -360,25 +360,25 @@ wheels = [
 
 [[package]]
 name = "pychrony"
-version = "0.0.11"
+version = "0.0.12"
 source = { registry = "https://test.pypi.org/simple/" }
 dependencies = [
     { name = "cffi" },
 ]
-sdist = { url = "https://test-files.pythonhosted.org/packages/35/a7/73b27b29d2a938e9a3ba93ee1ef23839523aa2f0a87b6bdb652b55c08787/pychrony-0.0.11.tar.gz", hash = "sha256:8249e0950475c3512d4dd93b53663c4cf9e8bccfa2083196a5e7f5988f4a6802", size = 222977, upload-time = "2026-01-17T20:53:23.238Z" }
+sdist = { url = "https://test-files.pythonhosted.org/packages/04/00/11bf4a72557e2f4ec3df07ff8c271563682292f83f43dacf4cdb734e6431/pychrony-0.0.12.tar.gz", hash = "sha256:554db3c8837931419e365946eb5b8854ff7f742099a2ac4b1764f57071dfe6b1", size = 224156, upload-time = "2026-01-18T06:24:01.814Z" }
 wheels = [
-    { url = "https://test-files.pythonhosted.org/packages/94/0c/2fa563549fdd2d5a435ff67313b0a7a2bcdbec8fb17dbbf25acb2c7da38b/pychrony-0.0.11-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:47b174bda370983cb11beea34d696d49fce5fd8ac363a43f539fbacf42eafc35", size = 82240, upload-time = "2026-01-17T20:53:09.2Z" },
-    { url = "https://test-files.pythonhosted.org/packages/98/0a/abbcdaa8d73c1d429ec3ea0671e30721a1a74a8e022db0c260ea07a2000d/pychrony-0.0.11-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:63a000075ef050d78a36e7f24c6fdd881f1cac69623419760ea7ce6c601131ff", size = 84556, upload-time = "2026-01-17T20:53:10.468Z" },
-    { url = "https://test-files.pythonhosted.org/packages/cb/05/a01b1f62cfe2b2c921d2051c2e674feef9ac4541d633c896900e07cb9cda/pychrony-0.0.11-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:7d52ada289f00e6901d16c6328892320c684098be403579f03cd0fa9202d10ac", size = 81765, upload-time = "2026-01-17T20:53:11.736Z" },
-    { url = "https://test-files.pythonhosted.org/packages/96/0d/1cbf253d00885c0f3ecacf75de1b74c7786b17e54e3a1ce946785041b7cc/pychrony-0.0.11-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:f5c45cf03f85cda2541a8dfa889f25f48b5a995ed99963362f605bbf54cbc401", size = 80018, upload-time = "2026-01-17T20:53:12.794Z" },
-    { url = "https://test-files.pythonhosted.org/packages/06/10/c2a69f44ac262c9ff2c344fab00bf30accfbed69326b2ccba9083a2532ad/pychrony-0.0.11-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:fbd6aed6b871a3a84a9511693a27ede0383cdc9bc8131863bb0ca023727a039f", size = 82236, upload-time = "2026-01-17T20:53:13.86Z" },
-    { url = "https://test-files.pythonhosted.org/packages/e9/28/1fa49bb48c9d0195ec7ca10d78f901f7af5e05a1628a5134980f651cd124/pychrony-0.0.11-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f8ddec59834534d6c02dcdbe478442c5556e85cd6f7e014d7dc0126e32d9a575", size = 84536, upload-time = "2026-01-17T20:53:14.94Z" },
-    { url = "https://test-files.pythonhosted.org/packages/1a/9c/a4b2473b9b5c2e46f139a4bd03973ca3cb0443916946654c7d683e8ea282/pychrony-0.0.11-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:56f03b9632a3b63b8922ab44984d8ed96c7898f77354d9b7541685ba7d3d8b4e", size = 81757, upload-time = "2026-01-17T20:53:16.086Z" },
-    { url = "https://test-files.pythonhosted.org/packages/18/e2/c8bc23b6dd0ccac6f4a5ccfa377813ad51645dea2e137ecf7d151b3998dd/pychrony-0.0.11-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:2a82a39ba021fe9aabbd35add08bde24edd97c36052202d198756c1c1184b990", size = 80004, upload-time = "2026-01-17T20:53:17.251Z" },
-    { url = "https://test-files.pythonhosted.org/packages/3c/f3/1cece3deb65d74e0b2953d58b3357a6039c4567572787c23408c7435d783/pychrony-0.0.11-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:d266c3572a9e56f6688a118d39be7b74c82a2d1efcf0bb6854560968f340dde0", size = 82313, upload-time = "2026-01-17T20:53:18.251Z" },
-    { url = "https://test-files.pythonhosted.org/packages/21/d7/fdd0ea656c6bd80322e505ee777c6aad41d812e0dcc0187147caf6a833b7/pychrony-0.0.11-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1d111913a861520bcd8886f6571f9a7e61192bd105c79ae0a9e56e479486028c", size = 84585, upload-time = "2026-01-17T20:53:19.714Z" },
-    { url = "https://test-files.pythonhosted.org/packages/13/42/687933a7cc5894cd99db21acbdf06a79537d8af9499d022e8262da84483e/pychrony-0.0.11-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:91cabad83765cc3d55c26397354b5d30945e6ac6a7642f6e6dba65cb6da76e14", size = 81780, upload-time = "2026-01-17T20:53:20.771Z" },
-    { url = "https://test-files.pythonhosted.org/packages/90/49/2a0bb8e41c7da063270d6d5317f9273071b86bdba0a20cd4beb6afb8a33e/pychrony-0.0.11-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:0e56d10957a8e07cd303275156bd20cbbd1c1898e79ad3705bf5a259d95e70d2", size = 80030, upload-time = "2026-01-17T20:53:21.838Z" },
+    { url = "https://test-files.pythonhosted.org/packages/b2/77/29cb8f7fc556c2e664cc048de7471e036d539366d7c404c2604bb80b7fca/pychrony-0.0.12-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:5a53d69011c93048765592fa628b71b1c59ba5ae052ec8105f94accf191df770", size = 84363, upload-time = "2026-01-18T06:23:48.757Z" },
+    { url = "https://test-files.pythonhosted.org/packages/7a/00/e8dfb4a1de458cc334e22900a4d1ad13921387f1da60f4525f2018aaa498/pychrony-0.0.12-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:aa90257d2aa3cc5ca2db66bdb17c915e279f546ce402e278c5c04310c2239b96", size = 86673, upload-time = "2026-01-18T06:23:49.712Z" },
+    { url = "https://test-files.pythonhosted.org/packages/3f/8f/7851c3d0dc98e2102a67322d86c1d328cd3f27873efd4e1f774f72f255bb/pychrony-0.0.12-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:b1f15bf967572ff3bfffb61bf2b0bf67db7a66c156e9f5cfa46e3bb2992d31b2", size = 83852, upload-time = "2026-01-18T06:23:50.969Z" },
+    { url = "https://test-files.pythonhosted.org/packages/ca/6c/7cb45827d60dfd548d3383a49343d16030ab1a20ce5f9a8bcc8ee7ece910/pychrony-0.0.12-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:ad5370b644ae1a4092691342a520fb71ce59bfcf25a00b9800243ac796eb5b53", size = 82086, upload-time = "2026-01-18T06:23:51.922Z" },
+    { url = "https://test-files.pythonhosted.org/packages/66/fe/9e9f2abf45a885da5af48c90e0672816ebd5b48543b45138fa4da4c7756b/pychrony-0.0.12-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:1dd6d746e14953c2a9982aa31918af895ea421ac365aceecb060a9b6e279eb19", size = 84358, upload-time = "2026-01-18T06:23:52.987Z" },
+    { url = "https://test-files.pythonhosted.org/packages/79/d4/4f92fba71c039bebaa28b1c5c5f2f15a4af262048a4e703ea6a35586b6d2/pychrony-0.0.12-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7298f64f0c8959d3fadc7e62b3c05588b42cb5b9bf76971e5c377d416ec6f300", size = 86650, upload-time = "2026-01-18T06:23:54.032Z" },
+    { url = "https://test-files.pythonhosted.org/packages/d4/55/3744e925afce6f9e63811aeaad092591895aa27aa64ac78669ecc938315d/pychrony-0.0.12-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:83a48e368c2eeaa1817fbd484ac29a2e7c46a88c26d6ad7f24f210be717b4c22", size = 83837, upload-time = "2026-01-18T06:23:55.09Z" },
+    { url = "https://test-files.pythonhosted.org/packages/8b/92/75e25d26f3e0b66a8b9ed14f7bc8c49dd3433826862ec99d57b40aafb113/pychrony-0.0.12-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:b4e8410a3bfdca829e03cf1d81d29138bb1aa6b56512be7a5e8348ec32d28071", size = 82081, upload-time = "2026-01-18T06:23:56.046Z" },
+    { url = "https://test-files.pythonhosted.org/packages/dc/09/939a20fb44440876b10910d720b6f5c913ef38ae692754afd27db5b211ca/pychrony-0.0.12-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:6c2e2854a5fcaa8dc73965e8994c07695822948f43606a7e065dc7fa2c2ae812", size = 84427, upload-time = "2026-01-18T06:23:57.115Z" },
+    { url = "https://test-files.pythonhosted.org/packages/17/8f/744df71ad6182da4c9275df9e32d9cb85937e8ff01a448a00891e8a24017/pychrony-0.0.12-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8e315a77bbc479a51d6a8f61d467e755bc32ff9708e42ebe9266e6ff6cd73e27", size = 86683, upload-time = "2026-01-18T06:23:58.44Z" },
+    { url = "https://test-files.pythonhosted.org/packages/09/d7/17ae61202a4ed9b92a129dfc7f8ac1dbe4782da39982afae75b494302ac3/pychrony-0.0.12-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:59273f08ff1fe0e8f3da6da501d8a6e327039303f97c619dfde874930cf09824", size = 83853, upload-time = "2026-01-18T06:23:59.594Z" },
+    { url = "https://test-files.pythonhosted.org/packages/ed/7c/d5b956a2cffef3ac23ba21e6df7c3b9785944c842ea8d97b640b9b3b94d5/pychrony-0.0.12-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:66c7773348076bbb31150bcfd9050a4618c86f53fe7717e0850bff3b3ae05454", size = 82117, upload-time = "2026-01-18T06:24:00.843Z" },
 ]
 
 [[package]]
@@ -590,7 +590,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "htpy", specifier = ">=25.10.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28.0" },
-    { name = "pychrony", specifier = ">=0.0.11", index = "https://test.pypi.org/simple/" },
+    { name = "pychrony", specifier = ">=0.0.12", index = "https://test.pypi.org/simple/" },
     { name = "pydantic-settings", specifier = ">=2.7.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0.0" },

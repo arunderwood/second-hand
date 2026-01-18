@@ -5,15 +5,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pychrony import (
     ChronyConnectionError,
-    ChronyDataError,
     ChronyPermissionError,
-    LeapStatus,
     RTCData,
     Source,
-    SourceMode,
-    SourceState,
     SourceStats,
     TrackingStatus,
+)
+from pychrony.testing import (
+    make_rtc_data,
+    make_source,
+    make_source_stats,
+    make_tracking,
 )
 
 from second_hand.services.chrony import ChronyData, fetch_chrony_data
@@ -21,89 +23,29 @@ from second_hand.services.chrony import ChronyData, fetch_chrony_data
 
 @pytest.fixture
 def mock_tracking() -> TrackingStatus:
-    """Create a mock TrackingStatus for testing."""
-    return TrackingStatus(
-        reference_id=0x50505300,  # PPS
-        reference_id_name="PPS",
-        reference_ip="127.127.22.0",
-        stratum=1,
-        leap_status=LeapStatus.NORMAL,
-        ref_time=1700000000.0,
-        offset=0.000001,
-        last_offset=0.0000015,
-        rms_offset=0.000002,
-        frequency=1.5,
-        residual_freq=0.001,
-        skew=0.01,
-        root_delay=0.0,
-        root_dispersion=0.00001,
-        update_interval=16.0,
-    )
+    """Create a mock TrackingStatus for testing using factory defaults."""
+    return make_tracking()
 
 
 @pytest.fixture
 def mock_sources() -> list[Source]:
-    """Create mock sources for testing."""
+    """Create mock sources for testing using factory defaults."""
     return [
-        Source(
-            address="192.168.1.1",
-            poll=6,
-            stratum=2,
-            state=SourceState.SELECTED,
-            mode=SourceMode.CLIENT,
-            flags=0,
-            reachability=255,
-            last_sample_ago=5,
-            orig_latest_meas=0.001,
-            latest_meas=0.001,
-            latest_meas_err=0.0001,
-        ),
-        Source(
-            address="10.0.0.1",
-            poll=6,
-            stratum=3,
-            state=SourceState.UNSELECTED,
-            mode=SourceMode.CLIENT,
-            flags=0,
-            reachability=0,
-            last_sample_ago=120,
-            orig_latest_meas=0.005,
-            latest_meas=0.005,
-            latest_meas_err=0.001,
-        ),
+        make_source(address="192.168.1.1"),
+        make_source(address="10.0.0.1", reachability=0),
     ]
 
 
 @pytest.fixture
 def mock_source_stats() -> list[SourceStats]:
-    """Create mock source stats for testing."""
-    return [
-        SourceStats(
-            reference_id=0xC0A80101,
-            address="192.168.1.1",
-            samples=8,
-            runs=4,
-            span=256,
-            std_dev=0.0001,
-            resid_freq=0.01,
-            skew=0.001,
-            offset=0.001,
-            offset_err=0.0001,
-        ),
-    ]
+    """Create mock source stats for testing using factory defaults."""
+    return [make_source_stats(address="192.168.1.1")]
 
 
 @pytest.fixture
 def mock_rtc() -> RTCData:
-    """Create mock RTC data for testing."""
-    return RTCData(
-        ref_time=1700000000.0,
-        samples=10,
-        runs=5,
-        span=86400,
-        offset=0.5,
-        freq_offset=1.2,
-    )
+    """Create mock RTC data for testing using factory defaults."""
+    return make_rtc_data()
 
 
 class TestChronyData:
@@ -172,26 +114,22 @@ class TestChronyData:
 class TestFetchChronyData:
     """Tests for fetch_chrony_data function."""
 
-    @patch("second_hand.services.chrony.get_rtc_data")
-    @patch("second_hand.services.chrony.get_source_stats")
-    @patch("second_hand.services.chrony.get_sources")
-    @patch("second_hand.services.chrony.get_tracking")
+    @patch("second_hand.services.chrony.ChronyConnection")
     def test_fetch_all_data_successfully(
         self,
-        mock_get_tracking: MagicMock,
-        mock_get_sources: MagicMock,
-        mock_get_source_stats: MagicMock,
-        mock_get_rtc_data: MagicMock,
+        mock_connection_class: MagicMock,
         mock_tracking: TrackingStatus,
         mock_sources: list[Source],
         mock_source_stats: list[SourceStats],
         mock_rtc: RTCData,
     ) -> None:
         """Test successful fetch of all chrony data."""
-        mock_get_tracking.return_value = mock_tracking
-        mock_get_sources.return_value = mock_sources
-        mock_get_source_stats.return_value = mock_source_stats
-        mock_get_rtc_data.return_value = mock_rtc
+        mock_conn = MagicMock()
+        mock_conn.get_tracking.return_value = mock_tracking
+        mock_conn.get_sources.return_value = mock_sources
+        mock_conn.get_source_stats.return_value = mock_source_stats
+        mock_conn.get_rtc_data.return_value = mock_rtc
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
 
         result = fetch_chrony_data()
 
@@ -202,12 +140,14 @@ class TestFetchChronyData:
         assert result.error is None
         assert result.is_connected is True
 
-    @patch("second_hand.services.chrony.get_tracking")
+    @patch("second_hand.services.chrony.ChronyConnection")
     def test_connection_error_returns_error_data(
-        self, mock_get_tracking: MagicMock
+        self, mock_connection_class: MagicMock
     ) -> None:
         """Test connection error returns appropriate error message."""
-        mock_get_tracking.side_effect = ChronyConnectionError("Connection failed")
+        mock_connection_class.return_value.__enter__.side_effect = (
+            ChronyConnectionError("Connection failed")
+        )
 
         result = fetch_chrony_data()
 
@@ -218,12 +158,14 @@ class TestFetchChronyData:
         assert result.error == "Unable to connect to chronyd. Is the service running?"
         assert result.is_connected is False
 
-    @patch("second_hand.services.chrony.get_tracking")
+    @patch("second_hand.services.chrony.ChronyConnection")
     def test_permission_error_returns_error_data(
-        self, mock_get_tracking: MagicMock
+        self, mock_connection_class: MagicMock
     ) -> None:
         """Test permission error returns appropriate error message."""
-        mock_get_tracking.side_effect = ChronyPermissionError("Permission denied")
+        mock_connection_class.return_value.__enter__.side_effect = (
+            ChronyPermissionError("Permission denied")
+        )
 
         result = fetch_chrony_data()
 
@@ -231,25 +173,21 @@ class TestFetchChronyData:
         assert result.error == "Permission denied. Add your user to the chrony group."
         assert result.is_connected is False
 
-    @patch("second_hand.services.chrony.get_rtc_data")
-    @patch("second_hand.services.chrony.get_source_stats")
-    @patch("second_hand.services.chrony.get_sources")
-    @patch("second_hand.services.chrony.get_tracking")
-    def test_rtc_unavailable_is_not_error(
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_rtc_unavailable_returns_none(
         self,
-        mock_get_tracking: MagicMock,
-        mock_get_sources: MagicMock,
-        mock_get_source_stats: MagicMock,
-        mock_get_rtc_data: MagicMock,
+        mock_connection_class: MagicMock,
         mock_tracking: TrackingStatus,
         mock_sources: list[Source],
         mock_source_stats: list[SourceStats],
     ) -> None:
-        """Test that RTC unavailable is handled gracefully without error."""
-        mock_get_tracking.return_value = mock_tracking
-        mock_get_sources.return_value = mock_sources
-        mock_get_source_stats.return_value = mock_source_stats
-        mock_get_rtc_data.side_effect = ChronyDataError("RTC not available")
+        """Test that RTC unavailable returns None without error."""
+        mock_conn = MagicMock()
+        mock_conn.get_tracking.return_value = mock_tracking
+        mock_conn.get_sources.return_value = mock_sources
+        mock_conn.get_source_stats.return_value = mock_source_stats
+        mock_conn.get_rtc_data.return_value = None  # RTC not available
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
 
         result = fetch_chrony_data()
 
@@ -260,13 +198,15 @@ class TestFetchChronyData:
         assert result.error is None
         assert result.is_connected is True
 
-    @patch("second_hand.services.chrony.get_tracking")
-    def test_custom_socket_path_passed_to_pychrony(
-        self, mock_get_tracking: MagicMock
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_custom_socket_path_passed_to_connection(
+        self, mock_connection_class: MagicMock
     ) -> None:
-        """Test custom socket path is passed to pychrony functions."""
-        mock_get_tracking.side_effect = ChronyConnectionError("No connection")
+        """Test custom socket path is passed to ChronyConnection."""
+        mock_connection_class.return_value.__enter__.side_effect = (
+            ChronyConnectionError("No connection")
+        )
 
         fetch_chrony_data(socket_path="/custom/socket.sock")
 
-        mock_get_tracking.assert_called_once_with(socket_path="/custom/socket.sock")
+        mock_connection_class.assert_called_once_with("/custom/socket.sock")

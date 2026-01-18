@@ -1,40 +1,27 @@
 """Unit tests for sources table component."""
 
 import pytest
-from pychrony import Source, SourceMode, SourceState
+from pychrony import Source, SourceState
+from pychrony.testing import make_source
 
 from second_hand.components.sources import sources_table
 
 
 @pytest.fixture
 def mock_sources() -> list[Source]:
-    """Create mock sources for testing."""
+    """Create mock sources for testing using factory defaults."""
     return [
-        Source(
+        make_source(
             address="192.168.1.1",
             poll=6,
-            stratum=2,
             state=SourceState.SELECTED,
-            mode=SourceMode.CLIENT,
-            flags=0,
             reachability=255,
-            last_sample_ago=5,
-            orig_latest_meas=0.001,
-            latest_meas=0.001,
-            latest_meas_err=0.0001,
         ),
-        Source(
+        make_source(
             address="10.0.0.1",
             poll=8,
-            stratum=3,
             state=SourceState.UNSELECTED,
-            mode=SourceMode.CLIENT,
-            flags=0,
             reachability=0,
-            last_sample_ago=120,
-            orig_latest_meas=0.005,
-            latest_meas=0.005,
-            latest_meas_err=0.001,
         ),
     ]
 
@@ -48,8 +35,8 @@ class TestSourcesTable:
         """Test sources table displays all provided sources."""
         result = str(sources_table(mock_sources))
 
-        assert "192.168.1.1" in result
-        assert "10.0.0.1" in result
+        for source in mock_sources:
+            assert source.address in result
 
     def test_sources_table_has_correct_columns(
         self, mock_sources: list[Source]

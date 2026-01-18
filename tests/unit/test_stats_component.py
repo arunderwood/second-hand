@@ -2,38 +2,17 @@
 
 import pytest
 from pychrony import SourceStats
+from pychrony.testing import make_source_stats
 
 from second_hand.components.stats import stats_table
 
 
 @pytest.fixture
 def mock_source_stats() -> list[SourceStats]:
-    """Create mock source stats for testing."""
+    """Create mock source stats for testing using factory defaults."""
     return [
-        SourceStats(
-            reference_id=0xC0A80101,
-            address="192.168.1.1",
-            samples=8,
-            runs=4,
-            span=256,
-            std_dev=0.0001,
-            resid_freq=0.01,
-            skew=0.001,
-            offset=0.001,
-            offset_err=0.0001,
-        ),
-        SourceStats(
-            reference_id=0x0A000001,
-            address="10.0.0.1",
-            samples=16,
-            runs=8,
-            span=512,
-            std_dev=0.00005,
-            resid_freq=0.005,
-            skew=0.0005,
-            offset=-0.0005,
-            offset_err=0.00005,
-        ),
+        make_source_stats(address="192.168.1.1", samples=8),
+        make_source_stats(address="10.0.0.1", samples=16),
     ]
 
 
@@ -46,8 +25,8 @@ class TestStatsTable:
         """Test stats table displays all provided sources."""
         result = str(stats_table(mock_source_stats))
 
-        assert "192.168.1.1" in result
-        assert "10.0.0.1" in result
+        for stats in mock_source_stats:
+            assert stats.address in result
 
     def test_stats_table_has_correct_columns(
         self, mock_source_stats: list[SourceStats]
@@ -67,8 +46,9 @@ class TestStatsTable:
         """Test samples count is displayed as integer."""
         result = str(stats_table(mock_source_stats))
 
-        assert "8" in result
-        assert "16" in result
+        # Reference fixture values
+        for stats in mock_source_stats:
+            assert str(stats.samples) in result
 
     def test_offset_formatted_with_units(
         self, mock_source_stats: list[SourceStats]

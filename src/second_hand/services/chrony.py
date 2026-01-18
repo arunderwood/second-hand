@@ -1,21 +1,16 @@
 """Chrony service for fetching data from chronyd."""
 
-import contextlib
 from dataclasses import dataclass
 
 from pychrony import (
+    ChronyConnection,
     ChronyConnectionError,
-    ChronyDataError,
     ChronyLibraryError,
     ChronyPermissionError,
     RTCData,
     Source,
     SourceStats,
     TrackingStatus,
-    get_rtc_data,
-    get_source_stats,
-    get_sources,
-    get_tracking,
 )
 
 
@@ -50,9 +45,11 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
         ChronyData with all available data and any error message.
     """
     try:
-        tracking = get_tracking(socket_path=socket_path)
-        sources = get_sources(socket_path=socket_path)
-        source_stats = get_source_stats(socket_path=socket_path)
+        with ChronyConnection(socket_path) as conn:
+            tracking = conn.get_tracking()
+            sources = conn.get_sources()
+            source_stats = conn.get_source_stats()
+            rtc = conn.get_rtc_data()  # Returns None if unavailable
     except (ChronyConnectionError, ChronyLibraryError):
         return ChronyData(
             tracking=None,
@@ -69,11 +66,6 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
             rtc=None,
             error="Permission denied. Add your user to the chrony group.",
         )
-
-    # RTC is optional - not an error if unavailable
-    rtc: RTCData | None = None
-    with contextlib.suppress(ChronyDataError):
-        rtc = get_rtc_data(socket_path=socket_path)
 
     return ChronyData(
         tracking=tracking,
