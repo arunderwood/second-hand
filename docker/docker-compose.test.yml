@@ -1,6 +1,4 @@
 # Docker Compose configuration for integration testing
-version: "3.8"
-
 services:
   test-integration:
     build:

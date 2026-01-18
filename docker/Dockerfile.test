@@ -8,9 +8,10 @@ RUN dnf install -y \
     python3-pip \
     && dnf clean all
 
-# Create chrony directories
+# Create chrony directories with proper permissions for socket
 RUN mkdir -p /run/chrony /var/lib/chrony /var/log/chrony \
-    && chown chrony:chrony /run/chrony /var/lib/chrony /var/log/chrony
+    && chown chrony:chrony /run/chrony /var/lib/chrony /var/log/chrony \
+    && chmod 750 /run/chrony
 
 # Copy chrony configuration
 COPY docker/chrony.conf /etc/chrony.conf
@@ -22,7 +23,7 @@ RUN pip install uv
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock* README.md ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
