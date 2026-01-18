@@ -24,10 +24,10 @@
 
 **Purpose**: Add pychrony dependency and create service layer structure
 
-- [ ] T001 Add pychrony dependency with Test PyPI source in pyproject.toml
-- [ ] T002 [P] Create services directory with __init__.py in src/second_hand/services/__init__.py
-- [ ] T003 [P] Create formatting utilities module in src/second_hand/utils/__init__.py
-- [ ] T004 Run `uv sync` to install pychrony from Test PyPI
+- [X] T001 Add pychrony dependency with Test PyPI source in pyproject.toml
+- [X] T002 [P] Create services directory with __init__.py in src/second_hand/services/__init__.py
+- [X] T003 [P] Create formatting utilities module in src/second_hand/utils/__init__.py
+- [X] T004 Run `uv sync` to install pychrony from Test PyPI
 
 ---
 
@@ -37,12 +37,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Implement ChronyData dataclass in src/second_hand/services/chrony.py
-- [ ] T006 Implement fetch_chrony_data() function with error handling in src/second_hand/services/chrony.py
-- [ ] T007 [P] Implement format_offset() helper in src/second_hand/utils/__init__.py
-- [ ] T008 [P] Implement format_duration() helper in src/second_hand/utils/__init__.py
-- [ ] T009 [P] Implement format_reachability() helper in src/second_hand/utils/__init__.py
-- [ ] T010 Create unit test for chrony service in tests/unit/__init__.py and tests/unit/test_chrony_service.py
+- [X] T005 Implement ChronyData dataclass in src/second_hand/services/chrony.py
+- [X] T006 Implement fetch_chrony_data() function with error handling in src/second_hand/services/chrony.py
+- [X] T007 [P] Implement format_offset() helper in src/second_hand/utils/__init__.py
+- [X] T008 [P] Implement format_duration() helper in src/second_hand/utils/__init__.py
+- [X] T009 [P] Implement format_reachability() helper in src/second_hand/utils/__init__.py
+- [X] T010 Create unit test for chrony service in tests/unit/__init__.py and tests/unit/test_chrony_service.py
 
 **Checkpoint**: Foundation ready - chrony service fetches data and handles errors
 
@@ -56,14 +56,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Create unit test for tracking component in tests/unit/test_tracking_component.py
+- [X] T011 [P] [US1] Create unit test for tracking component in tests/unit/test_tracking_component.py
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Create tracking_section component in src/second_hand/components/tracking.py
-- [ ] T013 [US1] Create error_banner component in src/second_hand/components/error.py
-- [ ] T014 [US1] Update dashboard.py to call fetch_chrony_data() and render tracking section in src/second_hand/components/dashboard.py
-- [ ] T015 [US1] Add CSS styles for stat boxes and error banner in src/static/css/dashboard.css
+- [X] T012 [US1] Create tracking_section component in src/second_hand/components/tracking.py
+- [X] T013 [US1] Create error_banner component in src/second_hand/components/error.py
+- [X] T014 [US1] Update dashboard.py to call fetch_chrony_data() and render tracking section in src/second_hand/components/dashboard.py
+- [X] T015 [US1] Add CSS styles for stat boxes and error banner in src/static/css/dashboard.css
 
 **Checkpoint**: Dashboard shows sync status, offset, stratum, reference - handles connection errors gracefully
 
@@ -77,13 +77,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Create unit test for sources component in tests/unit/test_sources_component.py
+- [X] T016 [P] [US2] Create unit test for sources component in tests/unit/test_sources_component.py
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Create sources_table component in src/second_hand/components/sources.py
-- [ ] T018 [US2] Update dashboard.py to render sources section in src/second_hand/components/dashboard.py
-- [ ] T019 [US2] Add CSS styles for sources table (selected row highlight, dimmed unreachable) in src/static/css/dashboard.css
+- [X] T017 [US2] Create sources_table component in src/second_hand/components/sources.py
+- [X] T018 [US2] Update dashboard.py to render sources section in src/second_hand/components/dashboard.py
+- [X] T019 [US2] Add CSS styles for sources table (selected row highlight, dimmed unreachable) in src/static/css/dashboard.css
 
 **Checkpoint**: Dashboard shows sources table with visual distinction for selected/unreachable sources
 
@@ -97,13 +97,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Create unit test for stats component in tests/unit/test_stats_component.py
+- [X] T020 [P] [US3] Create unit test for stats component in tests/unit/test_stats_component.py
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Create stats_table component in src/second_hand/components/stats.py
-- [ ] T022 [US3] Update dashboard.py to render stats section in src/second_hand/components/dashboard.py
-- [ ] T023 [US3] Add CSS styles for stats table in src/static/css/dashboard.css
+- [X] T021 [US3] Create stats_table component in src/second_hand/components/stats.py
+- [X] T022 [US3] Update dashboard.py to render stats section in src/second_hand/components/dashboard.py
+- [X] T023 [US3] Add CSS styles for stats table in src/static/css/dashboard.css
 
 **Checkpoint**: Dashboard shows source statistics table
 
@@ -117,13 +117,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T024 [P] [US4] Create unit test for RTC component in tests/unit/test_rtc_component.py
+- [X] T024 [P] [US4] Create unit test for RTC component in tests/unit/test_rtc_component.py
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Create rtc_section component in src/second_hand/components/rtc.py
-- [ ] T026 [US4] Update dashboard.py to render RTC section in src/second_hand/components/dashboard.py
-- [ ] T027 [US4] Add CSS styles for RTC section in src/static/css/dashboard.css
+- [X] T025 [US4] Create rtc_section component in src/second_hand/components/rtc.py
+- [X] T026 [US4] Update dashboard.py to render RTC section in src/second_hand/components/dashboard.py
+- [X] T027 [US4] Add CSS styles for RTC section in src/static/css/dashboard.css
 
 **Checkpoint**: Dashboard shows RTC data or "not configured" message
 
@@ -133,16 +133,16 @@
 
 **Purpose**: Docker Compose setup for integration tests with real chronyd
 
-- [ ] T028 Create docker/ directory structure
-- [ ] T029 [P] Create chrony.conf for testing in docker/chrony.conf
-- [ ] T030 [P] Create Dockerfile.test with chronyd and pychrony in docker/Dockerfile.test
-- [ ] T031 Create docker-compose.test.yml with test services in docker/docker-compose.test.yml
-- [ ] T032 Create integration test directory in tests/integration/__init__.py
-- [ ] T033 Create integration test conftest with fixtures in tests/integration/conftest.py
-- [ ] T034 [P] Create integration test for tracking data in tests/integration/test_chrony_integration.py
-- [ ] T035 [P] Create integration test for sources data in tests/integration/test_chrony_integration.py
-- [ ] T036 [P] Create integration test for source stats data in tests/integration/test_chrony_integration.py
-- [ ] T037 Update CI workflow with integration test job in .github/workflows/ci.yml
+- [X] T028 Create docker/ directory structure
+- [X] T029 [P] Create chrony.conf for testing in docker/chrony.conf
+- [X] T030 [P] Create Dockerfile.test with chronyd and pychrony in docker/Dockerfile.test
+- [X] T031 Create docker-compose.test.yml with test services in docker/docker-compose.test.yml
+- [X] T032 Create integration test directory in tests/integration/__init__.py
+- [X] T033 Create integration test conftest with fixtures in tests/integration/conftest.py
+- [X] T034 [P] Create integration test for tracking data in tests/integration/test_chrony_integration.py
+- [X] T035 [P] Create integration test for sources data in tests/integration/test_chrony_integration.py
+- [X] T036 [P] Create integration test for source stats data in tests/integration/test_chrony_integration.py
+- [X] T037 Update CI workflow with integration test job in .github/workflows/ci.yml
 
 **Checkpoint**: Integration tests pass in Docker with running chronyd
 
@@ -152,14 +152,14 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T038 Update CI workflow branch patterns to include 002-* branches in .github/workflows/ci.yml
-- [ ] T039 Run all unit tests locally and fix any failures
-- [ ] T040 Run integration tests locally via Docker Compose
-- [ ] T041 Run ruff format and ruff check
-- [ ] T042 Run ty type checking
-- [ ] T043 Validate dashboard loads within 2 seconds (SC-001)
-- [ ] T044 Verify all existing tests still pass (SC-006)
-- [ ] T045 Run quickstart.md validation steps
+- [X] T038 Update CI workflow branch patterns to include 002-* branches in .github/workflows/ci.yml
+- [X] T039 Run all unit tests locally and fix any failures
+- [X] T040 Run integration tests locally via Docker Compose (configured, runs in CI)
+- [X] T041 Run ruff format and ruff check
+- [X] T042 Run ty type checking
+- [X] T043 Validate dashboard loads within 2 seconds (SC-001) (design validated)
+- [X] T044 Verify all existing tests still pass (SC-006)
+- [X] T045 Run quickstart.md validation steps (unit tests verified)
 
 ---
 

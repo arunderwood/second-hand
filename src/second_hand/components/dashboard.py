@@ -1,22 +1,33 @@
 """Dashboard page component for second-hand."""
 
-from htpy import Element, div, h1, h2, p, section
+from htpy import Element, div, h1, p
+
+from second_hand.services.chrony import ChronyData, fetch_chrony_data
 
 from .base import base_layout
+from .error import error_banner
+from .rtc import rtc_section
+from .sources import sources_table
+from .stats import stats_table
+from .tracking import tracking_section
 
 
-def dashboard_page(version: str) -> Element:
+def dashboard_page(version: str, chrony_data: ChronyData | None = None) -> Element:
     """Create the main dashboard page.
 
     Args:
         version: Application version string to display.
+        chrony_data: Optional pre-fetched chrony data. If None, fetches fresh data.
 
     Returns:
         Complete HTML dashboard page as an htpy Element.
     """
+    # Fetch chrony data if not provided
+    data = chrony_data if chrony_data is not None else fetch_chrony_data()
+
     content = div(".dashboard")[
         _header(version),
-        _stats_section(),
+        _main_content(data),
         _footer(version),
     ]
     return base_layout("second-hand Dashboard", content)
@@ -30,28 +41,27 @@ def _header(version: str) -> Element:
     ]
 
 
-def _stats_section() -> Element:
-    """Create the statistics section with placeholder content."""
-    return section(".stats-section")[
-        h2(".stats-title")["Time Statistics"],
-        div(".stats-grid")[
-            _stat_card("System Time", "Awaiting connection"),
-            _stat_card("NTP Sources", "Awaiting connection"),
-            _stat_card("Stratum", "Awaiting connection"),
-            _stat_card("Last Update", "Awaiting connection"),
-        ],
-        p(".stats-placeholder")[
-            "Chrony time statistics will appear here once connected."
-        ],
-    ]
+def _main_content(data: ChronyData) -> Element:
+    """Create the main content area with all chrony sections."""
+    sections: list[Element] = []
 
+    # Show error banner if there's a connection error
+    if data.error:
+        sections.append(error_banner(data.error))
 
-def _stat_card(title: str, value: str) -> Element:
-    """Create a statistics display card."""
-    return div(".stat-card")[
-        div(".stat-title")[title],
-        div(".stat-value")[value],
-    ]
+    # Always show tracking section (handles None tracking gracefully)
+    sections.append(tracking_section(data))
+
+    # Only show other sections if we have data
+    if data.is_connected:
+        if data.sources:
+            sections.append(sources_table(data.sources))
+        if data.source_stats:
+            sections.append(stats_table(data.source_stats))
+        # RTC section handles None gracefully
+        sections.append(rtc_section(data.rtc))
+
+    return div(".main-content")[sections]
 
 
 def _footer(version: str) -> Element:

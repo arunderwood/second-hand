@@ -1,0 +1,17 @@
+# Docker Compose configuration for integration testing
+version: "3.8"
+
+services:
+  test-integration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    privileged: true  # Required for chronyd to set system time
+    volumes:
+      # Mount source for fast iteration during development
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+    environment:
+      - PYTHONPATH=/app/src
+    command: >
+      sh -c "chronyd && sleep 2 && uv run pytest tests/integration -v"

@@ -27,7 +27,16 @@ dependencies = [
     "uvicorn>=0.34.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
+    "pychrony>=0.0.11",
 ]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+explicit = true
+
+[tool.uv.sources]
+pychrony = { index = "testpypi" }
 
 [project.optional-dependencies]
 dev = [
