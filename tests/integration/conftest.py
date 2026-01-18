@@ -23,19 +23,35 @@ def chrony_socket_path() -> str:
 
 @pytest.fixture(scope="session")
 def check_chronyd_running(chrony_socket_path: str) -> bool:
-    """Check if chronyd is running and accessible.
+    """Check if chronyd is running and accessible via pychrony.
 
-    Returns True if chronyd is accessible, False otherwise.
-    Skips the test if chronyd is not running.
+    Returns True if chronyd is accessible.
+    Fails the test if chronyd is not running or pychrony can't connect.
+
+    Integration tests MUST run against a real chronyd server. If connection
+    fails, the test should fail (not skip) to ensure CI catches configuration
+    issues with the Docker test environment.
     """
-    import socket
+    from pychrony import (
+        ChronyConnection,
+        ChronyConnectionError,
+        ChronyLibraryError,
+        ChronyPermissionError,
+    )
 
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        sock.settimeout(1.0)
-        sock.connect(chrony_socket_path)
-        sock.close()
+        with ChronyConnection(chrony_socket_path) as conn:
+            # Actually try to get data to verify full connectivity
+            conn.get_tracking()
         return True
-    except OSError:
-        pytest.skip("chronyd not running or socket not accessible")
-        return False
+    except (
+        ChronyConnectionError,
+        ChronyLibraryError,
+        ChronyPermissionError,
+        OSError,
+    ) as e:
+        pytest.fail(
+            f"chronyd not accessible at {chrony_socket_path}: {e}\n"
+            "Integration tests require a running chronyd. "
+            "Run via: docker compose -f docker/docker-compose.test.yml run --rm test-integration"
+        )
