@@ -1,0 +1,14 @@
+# Docker Compose configuration for integration testing
+services:
+  test-integration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    privileged: true  # Required for chronyd to set system time
+    volumes:
+      # Mount source for fast iteration during development
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+    environment:
+      - PYTHONPATH=/app/src
+    # Uses CMD from Dockerfile which runs run-integration-tests.sh

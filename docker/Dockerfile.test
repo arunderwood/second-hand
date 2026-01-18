@@ -1,0 +1,44 @@
+# Dockerfile for integration testing with chronyd
+FROM fedora:41
+
+# Install chrony and Python
+RUN dnf install -y \
+    chrony \
+    python3.14 \
+    python3-pip \
+    && dnf clean all
+
+# Create chrony directories with proper permissions for socket
+# chrony user needs to own /run/chrony to create the socket
+# Add root to chrony group so tests can access the socket
+RUN mkdir -p /run/chrony /var/lib/chrony /var/log/chrony \
+    && chown chrony:chrony /run/chrony /var/lib/chrony /var/log/chrony \
+    && chmod 770 /run/chrony \
+    && usermod -aG chrony root
+
+# Copy chrony configuration
+COPY docker/chrony.conf /etc/chrony.conf
+
+# Install uv for dependency management
+RUN pip install uv
+
+# Set up working directory
+WORKDIR /app
+
+# Copy project files
+COPY pyproject.toml uv.lock* README.md ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+
+# Install dependencies
+RUN uv sync --all-extras --dev
+
+# Set PYTHONPATH
+ENV PYTHONPATH=/app/src
+
+# Copy and set up the test entrypoint script
+COPY docker/run-integration-tests.sh /usr/local/bin/run-integration-tests.sh
+RUN chmod +x /usr/local/bin/run-integration-tests.sh
+
+# Default command runs integration tests
+CMD ["/usr/local/bin/run-integration-tests.sh"]
