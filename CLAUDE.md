@@ -1,0 +1,63 @@
+# second-hand Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-01-17
+
+## Active Technologies
+- Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML) (001-dashboard-init)
+- N/A (static page, no persistence) (001-dashboard-init)
+
+## Project Structure
+
+```text
+src/second_hand/
+├── __init__.py
+├── main.py
+├── config.py
+└── components/
+    ├── __init__.py
+    ├── base.py
+    └── dashboard.py
+src/static/css/
+tests/
+```
+
+## Commands
+
+```bash
+# Development
+uv run uvicorn second_hand.main:app --reload
+
+# Testing
+uv run pytest
+uv run pytest --cov=second_hand
+
+# Type checking
+uv run ty check src/
+
+# Linting
+uv run ruff check .
+uv run ruff format .
+```
+
+## Pre-Commit Requirements
+
+Run all quality checks before every git commit:
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run ty check src/
+uv run pytest
+```
+
+All checks must pass before committing.
+
+## Code Style
+
+Python 3.14: Follow standard conventions with full type hints. Use htpy for HTML generation.
+
+## Recent Changes
+- 001-dashboard-init: Added Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML)
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

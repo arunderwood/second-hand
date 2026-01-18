@@ -1,0 +1,247 @@
+# Tasks: Dashboard Initialization
+
+**Input**: Design documents from `/specs/001-dashboard-init/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
+
+**Tests**: Included per spec requirement (FR-005: "System MUST include a unit test framework with initial example tests")
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3, US4)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+Based on plan.md structure:
+- **Source**: `src/second_hand/`
+- **Components**: `src/second_hand/components/`
+- **Static**: `src/static/css/`
+- **Tests**: `tests/`
+- **GitHub**: `.github/`
+
+---
+
+## Phase 1: Setup (Project Initialization)
+
+**Purpose**: Create project structure and configure tooling
+
+- [x] T001 Create directory structure per plan.md: src/second_hand/, src/second_hand/components/, src/static/css/, tests/
+- [x] T002 Create pyproject.toml with dependencies: fastapi, uvicorn, htpy, pydantic-settings, pytest, pytest-cov, httpx
+- [x] T003 [P] Create src/second_hand/__init__.py with version metadata
+- [x] T004 [P] Create tests/__init__.py
+- [x] T005 [P] Configure ruff in pyproject.toml (linting and formatting)
+- [x] T006 [P] Configure ty in pyproject.toml (type checking)
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+
+**CRITICAL**: No user story work can begin until this phase is complete
+
+- [x] T007 Implement Settings model with pydantic-settings in src/second_hand/config.py
+- [x] T008 Create base FastAPI application in src/second_hand/main.py (empty routes, static mount)
+- [x] T009 [P] Create tests/conftest.py with pytest fixtures (test client, settings)
+
+**Checkpoint**: Foundation ready - user story implementation can now begin
+
+---
+
+## Phase 3: User Story 1 - View Dashboard Landing Page (Priority: P1) MVP
+
+**Goal**: Serve a modern, visually sharp dashboard page with placeholder content for chrony statistics
+
+**Independent Test**: Start server with `uvicorn second_hand.main:app`, navigate to http://localhost:8000, see styled dashboard
+
+### Tests for User Story 1
+
+- [x] T010 [P] [US1] Create test for base layout component in tests/test_components.py
+- [x] T011 [P] [US1] Create test for dashboard page component in tests/test_components.py
+- [x] T012 [P] [US1] Create test for GET / endpoint returns 200 with HTML in tests/test_main.py
+
+### Implementation for User Story 1
+
+- [x] T013 [P] [US1] Create base layout htpy component in src/second_hand/components/__init__.py
+- [x] T014 [P] [US1] Create base layout htpy component in src/second_hand/components/base.py
+- [x] T015 [US1] Create dashboard page htpy component in src/second_hand/components/dashboard.py
+- [x] T016 [US1] Implement GET / route returning dashboard HTML in src/second_hand/main.py
+- [x] T017 [US1] Create responsive CSS with modern, sharp styling in src/static/css/style.css
+- [x] T018 [US1] Add health check endpoint GET /health in src/second_hand/main.py
+- [x] T019 [US1] Add 404 error handler returning styled error page in src/second_hand/main.py
+
+**Checkpoint**: Dashboard displays at http://localhost:8000 with placeholder content and responsive styling
+
+---
+
+## Phase 4: User Story 2 - Develop with Immediate Feedback (Priority: P2)
+
+**Goal**: Enable hot-reload development mode for rapid iteration
+
+**Independent Test**: Run `uvicorn second_hand.main:app --reload`, modify a component file, refresh browser to see changes
+
+### Implementation for User Story 2
+
+- [x] T020 [US2] Verify uvicorn --reload works with htpy components (manual test, document in quickstart)
+- [x] T021 [US2] Add dev mode instructions to pyproject.toml scripts section
+- [x] T022 [US2] Create test for production vs development mode configuration in tests/test_config.py
+
+**Checkpoint**: Code changes reflect in browser after refresh without server restart
+
+---
+
+## Phase 5: User Story 3 - Run Automated Tests (Priority: P3)
+
+**Goal**: pytest framework with example tests that run locally and in CI
+
+**Independent Test**: Run `pytest` and see all tests pass with coverage report
+
+### Implementation for User Story 3
+
+- [x] T023 [P] [US3] Create GitHub Actions CI workflow in .github/workflows/ci.yml
+- [x] T024 [P] [US3] Configure pytest-cov in pyproject.toml for coverage reporting
+- [x] T025 [US3] Add ty type checking step to CI workflow in .github/workflows/ci.yml
+- [x] T026 [US3] Add Python version matrix (3.14, 3.13, 3.12) to CI workflow
+
+**Checkpoint**: `pytest` passes locally; CI runs tests on push with type checking
+
+---
+
+## Phase 6: User Story 4 - Onboard as New Contributor (Priority: P4)
+
+**Goal**: README with project mission and concise getting started steps
+
+**Independent Test**: Clone repo, follow README, see dashboard running in under 5 minutes
+
+### Implementation for User Story 4
+
+- [x] T027 [P] [US4] Create README.md with project mission and overview
+- [x] T028 [P] [US4] Add Getting Started section to README.md (prerequisites, install, run)
+- [x] T029 [US4] Add Development section to README.md (dev mode, testing, linting)
+- [x] T030 [US4] Create .github/dependabot.yml for daily Python updates (no PR limit)
+
+**Checkpoint**: New contributor can follow README and have dashboard running
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final validation and cleanup
+
+- [x] T031 Run ty type checking on entire codebase: `ty check src/`
+- [x] T032 Run ruff linting and formatting: `ruff check . && ruff format .`
+- [x] T033 Verify all tests pass with coverage: `pytest --cov=second_hand`
+- [x] T034 Validate quickstart.md checklist against actual project
+- [x] T035 Test responsive design at 320px, 768px, 1920px viewport widths
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3-6)**: All depend on Foundational phase completion
+- **Polish (Phase 7)**: Depends on all user stories being complete
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Foundational - No dependencies on other stories
+- **User Story 2 (P2)**: Can start after Foundational - Uses US1 components for testing
+- **User Story 3 (P3)**: Can start after Foundational - Tests US1 in CI
+- **User Story 4 (P4)**: Can start after Foundational - Documents US1-3
+
+### Within Each User Story
+
+- Tests FIRST (T010-T012 before T013-T019)
+- Components before routes
+- Routes before styling
+- Story complete before moving to next priority
+
+### Parallel Opportunities
+
+**Phase 1 (Setup)**:
+```
+T003, T004, T005, T006 can run in parallel
+```
+
+**Phase 2 (Foundational)**:
+```
+T009 can run in parallel with T007, T008
+```
+
+**Phase 3 (US1 - Dashboard)**:
+```
+T010, T011, T012 can run in parallel (tests)
+T013, T014 can run in parallel (components)
+```
+
+**Phase 5 (US3 - Testing)**:
+```
+T023, T024 can run in parallel
+```
+
+**Phase 6 (US4 - Documentation)**:
+```
+T027, T028 can run in parallel
+```
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch all tests for User Story 1 together:
+Task: "Create test for base layout component in tests/test_components.py"
+Task: "Create test for dashboard page component in tests/test_components.py"
+Task: "Create test for GET / endpoint returns 200 with HTML in tests/test_main.py"
+
+# Launch component scaffolding together:
+Task: "Create base layout htpy component in src/second_hand/components/__init__.py"
+Task: "Create base layout htpy component in src/second_hand/components/base.py"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational
+3. Complete Phase 3: User Story 1 (Dashboard)
+4. **STOP and VALIDATE**: Dashboard displays at http://localhost:8000
+5. Can demo/deploy immediately
+
+### Incremental Delivery
+
+1. Setup + Foundational → Project runs (empty)
+2. Add User Story 1 → Dashboard visible → **MVP Complete**
+3. Add User Story 2 → Dev mode verified
+4. Add User Story 3 → CI running, tests passing
+5. Add User Story 4 → README complete, ready for contributors
+
+### Recommended Execution
+
+For solo developer:
+1. T001-T009 (Setup + Foundational)
+2. T010-T019 (US1 - Dashboard) - **MVP milestone**
+3. T020-T022 (US2 - Dev mode)
+4. T023-T026 (US3 - CI/Testing)
+5. T027-T030 (US4 - Documentation)
+6. T031-T035 (Polish)
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies within same phase
+- [Story] label maps task to specific user story for traceability
+- Each user story is independently completable and testable
+- htpy components enable type-safe testing without regex
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently

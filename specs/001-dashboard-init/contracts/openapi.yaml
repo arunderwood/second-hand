@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: second-hand Dashboard API
+  description: |
+    API for the second-hand chrony statistics dashboard.
+    Phase 1 (001-dashboard-init) provides only the dashboard page endpoint.
+  version: 0.1.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /:
+    get:
+      operationId: getDashboard
+      summary: Render the main dashboard page
+      description: |
+        Returns the HTML dashboard page with placeholder content.
+        In future phases, this will display live chrony statistics.
+      tags:
+        - Dashboard
+      responses:
+        "200":
+          description: Dashboard HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+              example: |
+                <!DOCTYPE html>
+                <html>
+                  <head><title>second-hand Dashboard</title></head>
+                  <body>...</body>
+                </html>
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Simple endpoint to verify the server is running
+      tags:
+        - Operations
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: "healthy"
+                version: "0.1.0"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+          description: Server health status
+        version:
+          type: string
+          description: Application version
+
+tags:
+  - name: Dashboard
+    description: Dashboard rendering endpoints
+  - name: Operations
+    description: Operational endpoints (health, metrics)
