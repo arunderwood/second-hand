@@ -28,7 +28,7 @@ Template context passed to the dashboard page.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| request | Request | Yes | FastAPI request object (required by Jinja2) |
+| request | Request | Yes | FastAPI request object (required for URL generation) |
 | title | str | Yes | Page title ("second-hand Dashboard") |
 | version | str | Yes | Application version from package metadata |
 | placeholder_message | str | Yes | Message indicating future chrony stats location |

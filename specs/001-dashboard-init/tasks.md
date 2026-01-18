@@ -71,6 +71,7 @@ Based on plan.md structure:
 - [ ] T016 [US1] Implement GET / route returning dashboard HTML in src/second_hand/main.py
 - [ ] T017 [US1] Create responsive CSS with modern, sharp styling in src/static/css/style.css
 - [ ] T018 [US1] Add health check endpoint GET /health in src/second_hand/main.py
+- [ ] T019 [US1] Add 404 error handler returning styled error page in src/second_hand/main.py
 
 **Checkpoint**: Dashboard displays at http://localhost:8000 with placeholder content and responsive styling
 
@@ -84,9 +85,9 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Verify uvicorn --reload works with htpy components (manual test, document in quickstart)
-- [ ] T020 [US2] Add dev mode instructions to pyproject.toml scripts section
-- [ ] T021 [US2] Create test for production vs development mode configuration in tests/test_config.py
+- [ ] T020 [US2] Verify uvicorn --reload works with htpy components (manual test, document in quickstart)
+- [ ] T021 [US2] Add dev mode instructions to pyproject.toml scripts section
+- [ ] T022 [US2] Create test for production vs development mode configuration in tests/test_config.py
 
 **Checkpoint**: Code changes reflect in browser after refresh without server restart
 
@@ -100,10 +101,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] Create GitHub Actions CI workflow in .github/workflows/ci.yml
-- [ ] T023 [P] [US3] Configure pytest-cov in pyproject.toml for coverage reporting
-- [ ] T024 [US3] Add ty type checking step to CI workflow in .github/workflows/ci.yml
-- [ ] T025 [US3] Add Python version matrix (3.14, 3.13, 3.12) to CI workflow
+- [ ] T023 [P] [US3] Create GitHub Actions CI workflow in .github/workflows/ci.yml
+- [ ] T024 [P] [US3] Configure pytest-cov in pyproject.toml for coverage reporting
+- [ ] T025 [US3] Add ty type checking step to CI workflow in .github/workflows/ci.yml
+- [ ] T026 [US3] Add Python version matrix (3.14, 3.13, 3.12) to CI workflow
 
 **Checkpoint**: `pytest` passes locally; CI runs tests on push with type checking
 
@@ -117,10 +118,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T026 [P] [US4] Create README.md with project mission and overview
-- [ ] T027 [P] [US4] Add Getting Started section to README.md (prerequisites, install, run)
-- [ ] T028 [US4] Add Development section to README.md (dev mode, testing, linting)
-- [ ] T029 [US4] Create .github/dependabot.yml for daily Python updates (no PR limit)
+- [ ] T027 [P] [US4] Create README.md with project mission and overview
+- [ ] T028 [P] [US4] Add Getting Started section to README.md (prerequisites, install, run)
+- [ ] T029 [US4] Add Development section to README.md (dev mode, testing, linting)
+- [ ] T030 [US4] Create .github/dependabot.yml for daily Python updates (no PR limit)
 
 **Checkpoint**: New contributor can follow README and have dashboard running
 
@@ -130,11 +131,11 @@ Based on plan.md structure:
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T030 Run ty type checking on entire codebase: `ty check src/`
-- [ ] T031 Run ruff linting and formatting: `ruff check . && ruff format .`
-- [ ] T032 Verify all tests pass with coverage: `pytest --cov=second_hand`
-- [ ] T033 Validate quickstart.md checklist against actual project
-- [ ] T034 Test responsive design at 320px, 768px, 1920px viewport widths
+- [ ] T031 Run ty type checking on entire codebase: `ty check src/`
+- [ ] T032 Run ruff linting and formatting: `ruff check . && ruff format .`
+- [ ] T033 Verify all tests pass with coverage: `pytest --cov=second_hand`
+- [ ] T034 Validate quickstart.md checklist against actual project
+- [ ] T035 Test responsive design at 320px, 768px, 1920px viewport widths
 
 ---
 
@@ -156,7 +157,7 @@ Based on plan.md structure:
 
 ### Within Each User Story
 
-- Tests FIRST (T010-T012 before T013-T018)
+- Tests FIRST (T010-T012 before T013-T019)
 - Components before routes
 - Routes before styling
 - Story complete before moving to next priority
@@ -181,12 +182,12 @@ T013, T014 can run in parallel (components)
 
 **Phase 5 (US3 - Testing)**:
 ```
-T022, T023 can run in parallel
+T023, T024 can run in parallel
 ```
 
 **Phase 6 (US4 - Documentation)**:
 ```
-T026, T027 can run in parallel
+T027, T028 can run in parallel
 ```
 
 ---
@@ -228,11 +229,11 @@ Task: "Create base layout htpy component in src/second_hand/components/base.py"
 
 For solo developer:
 1. T001-T009 (Setup + Foundational)
-2. T010-T018 (US1 - Dashboard) - **MVP milestone**
-3. T019-T021 (US2 - Dev mode)
-4. T022-T025 (US3 - CI/Testing)
-5. T026-T029 (US4 - Documentation)
-6. T030-T034 (Polish)
+2. T010-T019 (US1 - Dashboard) - **MVP milestone**
+3. T020-T022 (US2 - Dev mode)
+4. T023-T026 (US3 - CI/Testing)
+5. T027-T030 (US4 - Documentation)
+6. T031-T035 (Polish)
 
 ---
 

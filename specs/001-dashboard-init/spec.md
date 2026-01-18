@@ -34,7 +34,7 @@ As a developer, I want code changes to be automatically detected and served with
 **Acceptance Scenarios**:
 
 1. **Given** the application is running in development mode, **When** I modify a source file, **Then** the changes are reflected in the browser after a page refresh without server restart
-2. **Given** the application is running in development mode, **When** I modify a template file, **Then** the updated template is served immediately
+2. **Given** the application is running in development mode, **When** I modify a component file, **Then** the updated component is served immediately
 3. **Given** I am not running in development mode, **When** I start the application normally, **Then** it runs in production mode without file watching overhead
 
 ---
