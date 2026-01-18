@@ -4,9 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    # No open-pull-requests-limit - allows all updates to create PRs
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
