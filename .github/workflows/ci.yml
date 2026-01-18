@@ -52,5 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Build test image
+        run: docker compose -f docker/docker-compose.test.yml build
+
       - name: Run integration tests
         run: docker compose -f docker/docker-compose.test.yml run --rm test-integration

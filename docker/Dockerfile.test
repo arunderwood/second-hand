@@ -9,9 +9,12 @@ RUN dnf install -y \
     && dnf clean all
 
 # Create chrony directories with proper permissions for socket
+# chrony user needs to own /run/chrony to create the socket
+# Add root to chrony group so tests can access the socket
 RUN mkdir -p /run/chrony /var/lib/chrony /var/log/chrony \
     && chown chrony:chrony /run/chrony /var/lib/chrony /var/log/chrony \
-    && chmod 750 /run/chrony
+    && chmod 770 /run/chrony \
+    && usermod -aG chrony root
 
 # Copy chrony configuration
 COPY docker/chrony.conf /etc/chrony.conf
@@ -33,5 +36,9 @@ RUN uv sync --all-extras --dev
 # Set PYTHONPATH
 ENV PYTHONPATH=/app/src
 
+# Copy and set up the test entrypoint script
+COPY docker/run-integration-tests.sh /usr/local/bin/run-integration-tests.sh
+RUN chmod +x /usr/local/bin/run-integration-tests.sh
+
 # Default command runs integration tests
-CMD ["sh", "-c", "chronyd && sleep 2 && uv run pytest tests/integration -v"]
+CMD ["/usr/local/bin/run-integration-tests.sh"]

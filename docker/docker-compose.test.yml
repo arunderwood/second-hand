@@ -11,5 +11,4 @@ services:
       - ../tests:/app/tests:ro
     environment:
       - PYTHONPATH=/app/src
-    command: >
-      sh -c "chronyd && sleep 2 && uv run pytest tests/integration -v"
+    # Uses CMD from Dockerfile which runs run-integration-tests.sh

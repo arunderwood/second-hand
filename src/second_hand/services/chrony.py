@@ -53,7 +53,7 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
         tracking = get_tracking(socket_path=socket_path)
         sources = get_sources(socket_path=socket_path)
         source_stats = get_source_stats(socket_path=socket_path)
-    except ChronyConnectionError:
+    except (ChronyConnectionError, ChronyLibraryError):
         return ChronyData(
             tracking=None,
             sources=[],
@@ -68,14 +68,6 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
             source_stats=[],
             rtc=None,
             error="Permission denied. Add your user to the chrony group.",
-        )
-    except ChronyLibraryError:
-        return ChronyData(
-            tracking=None,
-            sources=[],
-            source_stats=[],
-            rtc=None,
-            error="pychrony library error. Check installation.",
         )
 
     # RTC is optional - not an error if unavailable
