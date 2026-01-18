@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-17
 ## Active Technologies
 - Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML) (001-dashboard-init)
 - N/A (static page, no persistence) (001-dashboard-init)
+- Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML), pychrony (from PyPI Test) (002-pychrony-integration)
+- N/A (read-only queries to chronyd via socket) (002-pychrony-integration)
 
 ## Project Structure
 
@@ -57,6 +59,7 @@ All checks must pass before committing.
 Python 3.14: Follow standard conventions with full type hints. Use htpy for HTML generation.
 
 ## Recent Changes
+- 002-pychrony-integration: Added Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML), pychrony (from PyPI Test)
 - 001-dashboard-init: Added Python 3.14 (primary), matrix testing 3.13, 3.12 + FastAPI, uvicorn, htpy (type-safe HTML)
 
 <!-- MANUAL ADDITIONS START -->
