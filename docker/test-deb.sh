@@ -60,9 +60,24 @@ fi
 echo "✓ No errors in service logs"
 
 echo "=== Testing health endpoint ==="
-docker exec "$CONTAINER_NAME" curl -sf http://localhost:8000/health
-echo ""
-echo "✓ Health endpoint responding"
+# Retry health check - uvicorn may need time to bind after service shows active
+attempt=1
+max_attempts=15
+while [ $attempt -le $max_attempts ]; do
+    if docker exec "$CONTAINER_NAME" curl -sf http://localhost:8000/health; then
+        echo ""
+        echo "✓ Health endpoint responding"
+        break
+    fi
+    if [ $attempt -eq $max_attempts ]; then
+        echo "✗ Health endpoint not responding after $max_attempts attempts"
+        docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 50 || true
+        exit 1
+    fi
+    echo "  Attempt $attempt/$max_attempts: health endpoint not ready yet..."
+    sleep 2
+    attempt=$((attempt + 1))
+done
 
 echo "=== Testing chrony connection via dashboard ==="
 DASHBOARD=$(docker exec "$CONTAINER_NAME" curl -sf http://localhost:8000/)
