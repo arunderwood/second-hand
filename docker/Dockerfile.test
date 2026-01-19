@@ -1,46 +1,42 @@
 # Dockerfile for integration testing with chronyd
-FROM fedora:41
+# Uses Debian for Raspbian compatibility
+FROM debian:bookworm-slim
 
 # Install chrony and curl (for uv installation)
-# Python will be managed by uv
-RUN dnf install -y \
+RUN apt-get update && apt-get install -y \
     chrony \
     curl \
-    && dnf clean all
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create chrony directories with proper permissions for socket
-# chrony user needs to own /run/chrony to create the socket
-# Add root to chrony group so tests can access the socket
-RUN mkdir -p /run/chrony /var/lib/chrony /var/log/chrony \
-    && chown chrony:chrony /run/chrony /var/lib/chrony /var/log/chrony \
-    && chmod 770 /run/chrony \
-    && usermod -aG chrony root
+# Create chrony socket directory with correct permissions
+RUN mkdir -p /run/chrony && chown _chrony:_chrony /run/chrony && chmod 750 /run/chrony
 
-# Copy chrony configuration
-COPY docker/chrony.conf /etc/chrony.conf
+# Configure chronyd for testing (local reference clock + Unix socket)
+RUN echo "local stratum 10" >> /etc/chrony/chrony.conf && \
+    echo "allow 127.0.0.1" >> /etc/chrony/chrony.conf && \
+    echo "cmdallow 127.0.0.1" >> /etc/chrony/chrony.conf && \
+    echo "cmdport 0" >> /etc/chrony/chrony.conf && \
+    echo "bindcmdaddress /run/chrony/chronyd.sock" >> /etc/chrony/chrony.conf
 
-# Install uv for dependency management (standalone installer)
+# Install uv for dependency management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # Set up working directory
 WORKDIR /app
 
-# Copy project files
-COPY pyproject.toml uv.lock* README.md ./
+# Copy project files (including .python-version for uv auto-detection)
+COPY pyproject.toml uv.lock* README.md .python-version ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install dependencies using Python 3.14
-RUN uv sync --python python3.14 --all-extras --dev
+# Install dependencies (uv auto-detects Python 3.14 from .python-version)
+RUN uv sync --all-extras --dev
 
-# Set PYTHONPATH and ensure unbuffered output for CI visibility
+# Set PYTHONPATH and ensure unbuffered output
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
-# Copy and set up the test entrypoint script
-COPY docker/run-integration-tests.sh /usr/local/bin/run-integration-tests.sh
-RUN chmod +x /usr/local/bin/run-integration-tests.sh
-
-# Default command runs integration tests
-CMD ["/usr/local/bin/run-integration-tests.sh"]
+# Default command runs all tests (integration tests need chronyd started first)
+CMD ["uv", "run", "pytest", "tests/integration", "-v"]

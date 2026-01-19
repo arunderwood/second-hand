@@ -4,11 +4,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
-    privileged: true  # Required for chronyd to set system time
-    volumes:
-      # Mount source for fast iteration during development
-      - ../src:/app/src:ro
-      - ../tests:/app/tests:ro
-    environment:
-      - PYTHONPATH=/app/src
-    # Uses CMD from Dockerfile which runs run-integration-tests.sh
+    command: >
+      sh -c "chronyd && sleep 2 && uv run pytest tests/integration -v --tb=short"
+    cap_add:
+      - SYS_TIME
+    privileged: true
