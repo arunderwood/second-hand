@@ -14,3 +14,8 @@ updates:
     directory: "/docker"
     schedule:
       interval: "daily"
+    ignore:
+      # fauust/docker-systemd version is managed by CI matrix in release.yml.
+      # We test on both debian-12 (matches build target) and debian-13 (forward
+      # compatibility). The Dockerfile uses ARG to select version at build time.
+      - dependency-name: "ghcr.io/fauust/docker-systemd"
