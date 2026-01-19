@@ -32,13 +32,62 @@ jobs:
             python3-pip \
             build-essential \
             libffi-dev \
-            git \
-            gh
+            git
 
       - name: Build .deb package
         run: dpkg-buildpackage -us -uc -b
 
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.arch }}
+          path: ../*.deb
+          retention-days: 1
+
+  test-deb:
+    needs: build-deb
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-${{ matrix.arch }}
+          path: docker/
+
+      - name: Build test image
+        run: docker build -t second-hand-deb-test:latest -f docker/Dockerfile.deb-test docker/
+
+      - name: Run .deb integration tests
+        run: |
+          chmod +x docker/test-deb.sh
+          docker/test-deb.sh
+
+  upload-release:
+    needs: test-deb
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-${{ matrix.arch }}
+
       - name: Upload .deb to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ github.event.release.tag_name }} ../*.deb
+        run: gh release upload ${{ github.event.release.tag_name }} *.deb

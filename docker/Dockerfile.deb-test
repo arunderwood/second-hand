@@ -1,0 +1,29 @@
+# Dockerfile for testing .deb package with systemd
+# Uses pre-configured systemd image (supports amd64 + arm64)
+FROM ghcr.io/fauust/docker-systemd:debian-12
+
+# Install chrony and curl for testing
+RUN apt-get update && apt-get install -y \
+    chrony \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure chrony for testing (local reference clock)
+RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
+
+# Copy .deb package
+COPY second-hand_*.deb /tmp/
+
+# Install .deb package
+# Mock systemctl during install since systemd isn't running at build time
+# The real systemctl is restored after install and services enabled for runtime
+RUN mv /usr/bin/systemctl /usr/bin/systemctl.real \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl \
+    && chmod +x /usr/bin/systemctl \
+    && apt-get update \
+    && apt-get install -y /tmp/second-hand_*.deb \
+    && rm -rf /var/lib/apt/lists/* \
+    && mv /usr/bin/systemctl.real /usr/bin/systemctl
+
+# Enable services to start on boot (now with real systemctl)
+RUN systemctl enable chrony second-hand
