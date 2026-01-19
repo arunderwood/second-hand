@@ -21,6 +21,8 @@ jobs:
       image: debian:bookworm
     steps:
       - uses: actions/checkout@v6
+        with:
+          path: source
 
       - name: Install build dependencies
         run: |
@@ -35,13 +37,14 @@ jobs:
             git
 
       - name: Build .deb package
+        working-directory: source
         run: dpkg-buildpackage -us -uc -b
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v6
         with:
           name: deb-${{ matrix.arch }}
-          path: ../*.deb
+          path: "*.deb"
           retention-days: 1
 
   test-deb:
