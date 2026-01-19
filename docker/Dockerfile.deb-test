@@ -1,6 +1,11 @@
 # Dockerfile for testing .deb package with systemd
 # Uses pre-configured systemd image (supports amd64 + arm64)
-FROM ghcr.io/fauust/docker-systemd:debian-12
+#
+# DEBIAN_VERSION is managed by CI matrix, not Dependabot.
+# We pin debian-12 to match our build target (debian:bookworm) and also
+# test debian-13 for forward compatibility. See .github/dependabot.yml.
+ARG DEBIAN_VERSION=debian-12
+FROM ghcr.io/fauust/docker-systemd:${DEBIAN_VERSION}
 
 # Install chrony and curl for testing
 RUN apt-get update && apt-get install -y \

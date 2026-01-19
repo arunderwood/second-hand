@@ -49,10 +49,20 @@ jobs:
     strategy:
       matrix:
         include:
+          # Test on Debian 12 (bookworm) - matches our build target
           - runner: ubuntu-latest
             arch: amd64
+            debian_version: debian-12
           - runner: ubuntu-24.04-arm
             arch: arm64
+            debian_version: debian-12
+          # Test on Debian 13 (trixie) - forward compatibility
+          - runner: ubuntu-latest
+            arch: amd64
+            debian_version: debian-13
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            debian_version: debian-13
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
@@ -64,7 +74,11 @@ jobs:
           path: docker/
 
       - name: Build test image
-        run: docker build -t second-hand-deb-test:latest -f docker/Dockerfile.deb-test docker/
+        run: |
+          docker build \
+            --build-arg DEBIAN_VERSION=${{ matrix.debian_version }} \
+            -t second-hand-deb-test:latest \
+            -f docker/Dockerfile.deb-test docker/
 
       - name: Run .deb integration tests
         run: |
