@@ -1,0 +1,11 @@
+# Docker Compose configuration for integration testing
+services:
+  test-integration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    command: >
+      sh -c "chronyd && sleep 2 && uv run pytest tests/integration -v --tb=short"
+    cap_add:
+      - SYS_TIME
+    privileged: true

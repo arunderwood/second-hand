@@ -1,0 +1,42 @@
+# Dockerfile for integration testing with chronyd
+# Uses Debian for Raspbian compatibility
+FROM debian:bookworm-slim
+
+# Install chrony and curl (for uv installation)
+RUN apt-get update && apt-get install -y \
+    chrony \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create chrony socket directory with correct permissions
+RUN mkdir -p /run/chrony && chown _chrony:_chrony /run/chrony && chmod 750 /run/chrony
+
+# Configure chronyd for testing (local reference clock + Unix socket)
+RUN echo "local stratum 10" >> /etc/chrony/chrony.conf && \
+    echo "allow 127.0.0.1" >> /etc/chrony/chrony.conf && \
+    echo "cmdallow 127.0.0.1" >> /etc/chrony/chrony.conf && \
+    echo "cmdport 0" >> /etc/chrony/chrony.conf && \
+    echo "bindcmdaddress /run/chrony/chronyd.sock" >> /etc/chrony/chrony.conf
+
+# Install uv for dependency management
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Set up working directory
+WORKDIR /app
+
+# Copy project files (including .python-version for uv auto-detection)
+COPY pyproject.toml uv.lock* README.md .python-version ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+
+# Install dependencies (uv auto-detects Python 3.14 from .python-version)
+RUN uv sync --all-extras --dev
+
+# Set PYTHONPATH and ensure unbuffered output
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+
+# Default command runs all tests (integration tests need chronyd started first)
+CMD ["uv", "run", "pytest", "tests/integration", "-v"]
