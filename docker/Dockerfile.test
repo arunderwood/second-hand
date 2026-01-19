@@ -1,11 +1,11 @@
 # Dockerfile for integration testing with chronyd
 FROM fedora:41
 
-# Install chrony and Python
+# Install chrony and curl (for uv installation)
+# Python will be managed by uv
 RUN dnf install -y \
     chrony \
-    python3.14 \
-    python3-pip \
+    curl \
     && dnf clean all
 
 # Create chrony directories with proper permissions for socket
@@ -19,8 +19,9 @@ RUN mkdir -p /run/chrony /var/lib/chrony /var/log/chrony \
 # Copy chrony configuration
 COPY docker/chrony.conf /etc/chrony.conf
 
-# Install uv for dependency management
-RUN pip install uv
+# Install uv for dependency management (standalone installer)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 # Set up working directory
 WORKDIR /app
@@ -30,11 +31,12 @@ COPY pyproject.toml uv.lock* README.md ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install dependencies
-RUN uv sync --all-extras --dev
+# Install dependencies using Python 3.14
+RUN uv sync --python python3.14 --all-extras --dev
 
-# Set PYTHONPATH
+# Set PYTHONPATH and ensure unbuffered output for CI visibility
 ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
 
 # Copy and set up the test entrypoint script
 COPY docker/run-integration-tests.sh /usr/local/bin/run-integration-tests.sh
