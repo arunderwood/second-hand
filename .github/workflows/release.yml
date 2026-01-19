@@ -20,7 +20,7 @@ jobs:
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: |
@@ -55,7 +55,7 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download .deb artifact
         uses: actions/download-artifact@v4
