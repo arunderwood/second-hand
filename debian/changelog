@@ -1,0 +1,7 @@
+second-hand (0.1.0-1) stable; urgency=medium
+
+  * Initial release
+  * Web dashboard for chrony NTP monitoring
+  * Displays tracking status, sources, and statistics
+
+ -- Arunderwood <arunderwood@users.noreply.github.com>  Sat, 18 Jan 2026 12:00:00 +0000

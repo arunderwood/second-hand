@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: second-hand
+Source: https://github.com/arunderwood/second-hand
+
+Files: *
+Copyright: 2026 second-hand contributors
+License: MIT

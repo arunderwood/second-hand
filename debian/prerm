@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade)
+        systemctl stop second-hand.service || true
+        systemctl disable second-hand.service || true
+        ;;
+esac
+
+#DEBHELPER#

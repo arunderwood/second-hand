@@ -1,0 +1,32 @@
+Source: second-hand
+Section: net
+Priority: optional
+Maintainer: Arunderwood <arunderwood@users.noreply.github.com>
+Homepage: https://github.com/arunderwood/second-hand
+Vcs-Git: https://github.com/arunderwood/second-hand.git
+Vcs-Browser: https://github.com/arunderwood/second-hand
+Rules-Requires-Root: no
+Build-Depends: debhelper-compat (= 13),
+               python3 (>= 3.11),
+               python3-venv,
+               python3-pip,
+               dh-virtualenv (>= 1.2.2)
+Standards-Version: 4.6.2
+
+Package: second-hand
+Architecture: any
+Pre-Depends: dpkg (>= 1.16.1)
+Depends: ${misc:Depends}, ${shlibs:Depends}, chrony
+Provides: chrony-dashboard
+Description: Chrony time statistics dashboard
+ A web dashboard for monitoring chrony NTP synchronization status.
+ Displays tracking info, time sources, and synchronization statistics.
+ .
+ Features:
+  * Real-time tracking status and synchronization state
+  * Time source overview with reachability indicators
+  * Source statistics including offset, jitter, and skew
+  * RTC (real-time clock) monitoring when available
+ .
+ Includes all Python dependencies in a self-contained virtualenv.
+ Runs as a systemd service on port 8000 by default.
