@@ -1,6 +1,6 @@
 # Dockerfile for testing .deb package with systemd
 # Uses pre-configured systemd image (supports amd64 + arm64)
-FROM ghcr.io/fauust/docker-systemd:debian-12
+FROM ghcr.io/fauust/docker-systemd:debian-13
 
 # Install chrony and curl for testing
 RUN apt-get update && apt-get install -y \
