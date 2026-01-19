@@ -1,0 +1,24 @@
+[Unit]
+Description=second-hand Chrony Dashboard
+Documentation=https://github.com/arunderwood/second-hand
+After=network.target chronyd.service
+Wants=chronyd.service
+
+[Service]
+Type=simple
+User=second-hand
+Group=chrony
+ExecStart=/opt/venvs/second-hand/bin/second-hand
+Restart=on-failure
+RestartSec=5
+Environment=SECOND_HAND_HOST=0.0.0.0
+Environment=SECOND_HAND_PORT=8000
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

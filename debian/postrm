@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    purge)
+        # Remove system user on purge
+        deluser --system second-hand || true
+        ;;
+esac
+
+#DEBHELPER#

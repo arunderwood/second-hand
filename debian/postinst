@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        # Create system user if needed
+        if ! getent passwd second-hand > /dev/null; then
+            adduser --system --group --no-create-home \
+                    --shell /usr/sbin/nologin second-hand
+        fi
+
+        # Add to chrony group for socket access
+        if getent group chrony > /dev/null; then
+            usermod -aG chrony second-hand
+        fi
+
+        # Enable and start service
+        systemctl daemon-reload
+        systemctl enable second-hand.service
+        systemctl start second-hand.service || true
+        ;;
+esac
+
+#DEBHELPER#
