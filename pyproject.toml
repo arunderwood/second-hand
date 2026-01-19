@@ -30,6 +30,8 @@ dependencies = [
     "pychrony>=0.0.12",
 ]
 
+# pychrony is currently only available on Test PyPI
+# Remove this index once pychrony is published to main PyPI
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"

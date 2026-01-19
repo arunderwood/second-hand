@@ -15,10 +15,20 @@ src/second_hand/
 ├── __init__.py
 ├── main.py
 ├── config.py
-└── components/
-    ├── __init__.py
-    ├── base.py
-    └── dashboard.py
+├── components/
+│   ├── __init__.py
+│   ├── base.py
+│   ├── dashboard.py
+│   ├── error.py
+│   ├── rtc.py
+│   ├── sources.py
+│   ├── stats.py
+│   └── tracking.py
+├── services/
+│   ├── __init__.py
+│   └── chrony.py
+└── utils/
+    └── __init__.py
 src/static/css/
 tests/
 ```
