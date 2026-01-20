@@ -28,7 +28,7 @@ dependencies = [
     "uvicorn>=0.34.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
-    "pychrony>=0.0.12",
+    "pychrony>=0.0.14",
 ]
 
 # pychrony is currently only available on Test PyPI
