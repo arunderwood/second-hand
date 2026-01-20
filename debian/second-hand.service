@@ -7,7 +7,7 @@ Wants=chronyd.service
 [Service]
 Type=simple
 User=second-hand
-Group=chrony
+Group=second-hand
 ExecStart=/opt/venvs/second-hand/bin/second-hand
 Restart=on-failure
 RestartSec=5

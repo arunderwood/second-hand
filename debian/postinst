@@ -9,8 +9,10 @@ case "$1" in
                     --shell /usr/sbin/nologin second-hand
         fi
 
-        # Add to chrony group for socket access
-        if getent group chrony > /dev/null; then
+        # Add to chrony group for socket access (Debian 12+ uses _chrony)
+        if getent group _chrony > /dev/null; then
+            usermod -aG _chrony second-hand
+        elif getent group chrony > /dev/null; then
             usermod -aG chrony second-hand
         fi
 
