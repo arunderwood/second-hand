@@ -214,3 +214,6 @@ Thumbs.db
 .idea/
 *.swp
 *.tmp
+
+# hatch-vcs generated version file
+src/second_hand/_version.py

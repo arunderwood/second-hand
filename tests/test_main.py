@@ -67,10 +67,12 @@ class TestHealthEndpoint:
 
     def test_health_check_includes_version(self, client: TestClient) -> None:
         """GET /health should include version in response."""
+        from second_hand import __version__
+
         response = client.get("/health")
         data = response.json()
         assert "version" in data
-        assert data["version"] == "0.1.0"
+        assert data["version"] == __version__
 
 
 class TestNotFoundHandler:
