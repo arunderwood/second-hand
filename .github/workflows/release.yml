@@ -53,19 +53,15 @@ jobs:
       matrix:
         include:
           # Test on Debian 12 (bookworm) - matches our build target
+          # Note: dh-virtualenv packages are tied to the Python version they're
+          # built with (Python 3.11 on Debian 12). Forward-compatibility testing
+          # with Debian 13 (Python 3.12) is not possible with this approach.
           - runner: ubuntu-latest
             arch: amd64
             debian_version: debian-12
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: debian-12
-          # Test on Debian 13 (trixie) - forward compatibility
-          - runner: ubuntu-latest
-            arch: amd64
-            debian_version: debian-13
-          - runner: ubuntu-24.04-arm
-            arch: arm64
-            debian_version: debian-13
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
