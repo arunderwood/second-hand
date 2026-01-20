@@ -11,7 +11,7 @@ from second_hand.components import dashboard_page
 from second_hand.components.base import error_page
 
 # Static files directory
-STATIC_DIR = Path(__file__).parent.parent / "static"
+STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(
     title="second-hand",

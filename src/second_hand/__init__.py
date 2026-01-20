@@ -1,3 +1,6 @@
 """second-hand: Chrony time statistics dashboard."""
 
-__version__ = "0.1.0"
+try:
+    from second_hand._version import __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"

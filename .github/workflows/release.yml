@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: source
+          fetch-depth: 0  # Required for hatch-vcs to read git tags
 
       - name: Install build dependencies
         run: |
@@ -34,7 +35,28 @@ jobs:
             python3-pip \
             build-essential \
             libffi-dev \
-            git
+            git \
+            devscripts
+
+      - name: Update debian/changelog from release
+        working-directory: source
+        env:
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+
+          # Create new version entry
+          dch --newversion "${VERSION}-1" --distribution stable ""
+
+          # Add each non-empty line from release notes as a changelog entry
+          echo "$RELEASE_BODY" | while IFS= read -r line; do
+            # Skip empty lines and markdown headers
+            line=$(echo "$line" | sed 's/^[#*-]* *//')  # Strip markdown bullets/headers
+            if [ -n "$line" ]; then
+              dch -a "$line"
+            fi
+          done
 
       - name: Build .deb package
         working-directory: source
