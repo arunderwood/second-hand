@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
 # Configure chrony for testing (local reference clock)
 RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
 
+# Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
+RUN getent group chrony || groupadd --system chrony
+
 # Copy .deb package
 COPY second-hand_*.deb /tmp/
 
