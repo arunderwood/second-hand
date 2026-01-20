@@ -16,7 +16,7 @@ Standards-Version: 4.6.2
 Package: second-hand
 Architecture: any
 Pre-Depends: dpkg (>= 1.16.1)
-Depends: ${misc:Depends}, ${shlibs:Depends}, chrony
+Depends: ${misc:Depends}, ${shlibs:Depends}, python3, chrony
 Provides: chrony-dashboard
 Description: Chrony time statistics dashboard
  A web dashboard for monitoring chrony NTP synchronization status.
