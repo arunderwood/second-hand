@@ -1,4 +1,4 @@
-second-hand (0.1.0-1) stable; urgency=medium
+second-hand (0.0.0-1) stable; urgency=medium
 
   * Initial release
   * Web dashboard for chrony NTP monitoring
