@@ -61,7 +61,7 @@ class TestTrackingSection:
 
         result = str(tracking_section(data))
 
-        assert "Not Synchronized" in result
+        assert "Not Sync" in result
         assert str(mock_tracking_unsynchronized.stratum) in result
 
     def test_connection_error_displays_error_section(self) -> None:
