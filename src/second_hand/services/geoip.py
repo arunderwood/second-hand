@@ -87,9 +87,12 @@ class GeoIPService:
 
         # Query the API
         try:
-            async with aiohttp.ClientSession() as session, session.get(
-                GEOIP_API_URL.format(ip=ip), timeout=aiohttp.ClientTimeout(total=3)
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(
+                    GEOIP_API_URL.format(ip=ip), timeout=aiohttp.ClientTimeout(total=3)
+                ) as response,
+            ):
                 if response.status != 200:
                     logger.debug(
                         "GeoIP API returned status %d for %s", response.status, ip
