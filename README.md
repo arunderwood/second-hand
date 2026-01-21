@@ -1,11 +1,10 @@
-<table><tr>
-<td><img src="src/second_hand/static/img/logo.svg" alt="" width="48" height="48"></td>
-<td><h1>second-hand</h1></td>
-</tr></table>
+<div align="center">
+  <img src="src/second_hand/static/img/logo.svg" width="100" height="100" alt="second-hand">
+  <h1>second-hand</h1>
+  <p><strong>A modern, type-safe dashboard for monitoring chrony time synchronization statistics.</strong></p>
+</div>
 
-A modern, type-safe dashboard for monitoring chrony time synchronization statistics.
-
-## Overview
+<br>
 
 second-hand provides a clean, responsive web interface for viewing NTP/chrony time statistics on your homelab or server. Built with Python 3.14, FastAPI, and htpy for type-safe HTML generation.
 
