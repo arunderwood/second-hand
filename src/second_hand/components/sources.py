@@ -1,10 +1,13 @@
 """Sources table component for displaying NTP sources."""
 
+import time
+
 from htpy import Element, div, h2, section, span, table, tbody, td, th, thead, tr
 from pychrony import Source
 
 from second_hand.components.base import tooltip_label
 from second_hand.components.tooltips import SOURCE_TOOLTIPS
+from second_hand.services.chrony import EnrichedSource
 from second_hand.utils import (
     format_duration,
     format_offset,
@@ -13,7 +16,7 @@ from second_hand.utils import (
 )
 
 
-def sources_table(sources: list[Source]) -> Element:
+def sources_table(sources: list[Source] | list[EnrichedSource]) -> Element:
     """Create the NTP sources table section.
 
     Displays all configured NTP sources with mode, address, state, stratum,
@@ -22,7 +25,7 @@ def sources_table(sources: list[Source]) -> Element:
     Rows are styled based on source state (selected, falseticker, unreachable, jittery).
 
     Args:
-        sources: List of Source objects from pychrony.
+        sources: List of Source or EnrichedSource objects.
 
     Returns:
         htpy Element containing the sources table section.
@@ -70,7 +73,7 @@ def _header_with_tooltip(text: str, tooltip_key: str) -> Element | str:
     return text
 
 
-def _source_row(source: Source) -> Element:
+def _source_row(source: Source | EnrichedSource) -> Element:
     """Create a table row for a single source.
 
     Row styling is based on source state:
@@ -80,39 +83,82 @@ def _source_row(source: Source) -> Element:
     - unreachable: faded
 
     Args:
-        source: Source object from pychrony.
+        source: Source or EnrichedSource object.
 
     Returns:
-        htpy Element for the table row.
+        htpy Element for the table row with data attributes for JS enhancement.
     """
-    # Determine row class based on state
-    row_class = _get_row_class(source)
+    # Extract the raw Source if we have an EnrichedSource
+    raw_source = source.source if isinstance(source, EnrichedSource) else source
 
-    # Format mode symbol
-    mode_symbol = _format_mode_symbol(source.mode.name)
+    # Determine row class based on state
+    row_class = _get_row_class(raw_source)
+
+    # Format mode as badge
+    mode_badge = _format_mode_badge(raw_source.mode.name)
 
     # Format state name (capitalize first letter)
-    state_name = source.state.name.replace("_", " ").title()
+    state_name = raw_source.state.name.replace("_", " ").title()
 
     # Format poll as 2^poll seconds
-    poll_seconds = 2**source.poll
+    poll_seconds = 2**raw_source.poll
     poll_formatted = format_duration(poll_seconds)
 
     # Format reachability with visual + octal
-    reach_visual = _format_reach_visual(source.reachability)
+    reach_visual = _format_reach_visual(raw_source.reachability)
 
     # Format measurement values with direction coloring
-    latest_meas_element = _format_offset_with_direction(source.latest_meas)
-    meas_err_formatted = format_offset(source.latest_meas_err)
+    latest_meas_element = _format_offset_with_direction(raw_source.latest_meas)
+    meas_err_formatted = format_offset(raw_source.latest_meas_err)
+
+    # Calculate timestamps for JS real-time updates
+    current_time = time.time()
+    last_rx_timestamp = int(current_time - raw_source.last_sample_ago)
+
+    # Create last-rx cell with data attributes for JS enhancement
+    last_rx_cell = td(
+        ".last-rx",
+        **{
+            "data-timestamp": str(last_rx_timestamp),
+        },
+    )[span(".time-since")[format_duration(int(raw_source.last_sample_ago)) + " ago"]]
+
+    # Create poll cell with data attributes for countdown
+    poll_cell = td(
+        ".poll",
+        **{
+            "data-poll-interval": str(poll_seconds),
+            "data-last-rx-time": str(last_rx_timestamp),
+        },
+    )[
+        span(".countdown")[poll_formatted]  # Static fallback
+    ]
+
+    # Get display name (hostname + IP for enriched, just address for plain)
+    if isinstance(source, EnrichedSource):
+        display_name = source.display_name
+        # Add country flag if available
+        address_content: list[Element | str] = []
+        if source.country_flag:
+            address_content.append(
+                span(
+                    ".country-flag",
+                    title=source.country_name or "",
+                )[source.country_flag + " "]
+            )
+        address_content.append(display_name)
+        address_cell = td(".address")[address_content]
+    else:
+        address_cell = td(".address")[raw_source.address]
 
     return tr(row_class)[
-        td(".mode")[mode_symbol],
-        td(".address")[source.address],
+        td(".mode")[mode_badge],
+        address_cell,
         td(".state")[state_name],
-        td(".stratum")[str(source.stratum)],
-        td(".poll")[poll_formatted],
+        td(".stratum")[str(raw_source.stratum)],
+        poll_cell,
         td(".reach")[reach_visual],
-        td(".last-rx")[format_duration(source.last_sample_ago)],
+        last_rx_cell,
         td(".latest-meas")[latest_meas_element],
         td(".meas-err")[meas_err_formatted],
     ]
@@ -142,21 +188,30 @@ def _get_row_class(source: Source) -> str:
     return ".source-row"
 
 
-def _format_mode_symbol(mode_name: str) -> str:
-    """Convert mode name to display symbol.
+def _format_mode_badge(mode_name: str) -> Element:
+    """Create a color-coded mode badge element.
 
     Args:
         mode_name: Mode enum name (e.g., "CLIENT", "PEER", "LOCAL").
 
     Returns:
-        Symbol character for display: ^ (client), = (peer), # (local).
+        htpy Element with styled badge and tooltip.
     """
-    mode_symbols = {
-        "CLIENT": "^",
-        "PEER": "=",
-        "LOCAL": "#",
+    # Map mode names to display info
+    mode_info = {
+        "CLIENT": ("Srv", "Server", "server"),
+        "PEER": ("Peer", "Peer", "peer"),
+        "LOCAL": ("Ref", "Reference Clock", "refclock"),
     }
-    return mode_symbols.get(mode_name, "?")
+
+    short_name, full_name, css_class = mode_info.get(
+        mode_name, ("?", "Unknown", "server")
+    )
+
+    return span(
+        f".mode-badge.mode-badge--{css_class}",
+        title=full_name,
+    )[short_name]
 
 
 def _format_reach_visual(reachability: int) -> Element:
@@ -166,10 +221,15 @@ def _format_reach_visual(reachability: int) -> Element:
         reachability: Reachability register value (0-255).
 
     Returns:
-        htpy Element with visual bits and octal value.
+        htpy Element with visual bits, octal value, and tooltip with percentage.
     """
     bits = format_reachability_visual(reachability)
     octal = format_reachability(reachability)
+
+    # Calculate reachability percentage
+    success_count = sum(1 for bit in bits if bit)
+    percentage = int(success_count / 8 * 100)
+    tooltip_text = f"Reachability: {octal} ({percentage}%)"
 
     # Create visual bit indicator
     bit_elements = [
@@ -177,7 +237,7 @@ def _format_reach_visual(reachability: int) -> Element:
     ]
 
     return span[
-        span(".reach-visual")[bit_elements],
+        span(".reach-visual", title=tooltip_text)[bit_elements],
         octal,
     ]
 
