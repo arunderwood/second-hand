@@ -59,6 +59,7 @@ def base_layout(page_title: str, content: Element) -> Element:
             meta(name="viewport", content="width=device-width, initial-scale=1"),
             title[page_title],
             link(rel="stylesheet", href="/static/css/style.css"),
+            link(rel="icon", href="/static/favicon.svg", type="image/svg+xml"),
         ],
         body[content],
     ]
