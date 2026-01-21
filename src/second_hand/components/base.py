@@ -1,6 +1,46 @@
 """Base layout component for second-hand pages."""
 
-from htpy import Element, body, head, html, link, meta, title
+from htpy import Element, body, head, html, link, meta, span, title
+
+from second_hand.components.tooltips import TooltipContent
+
+__all__ = ["base_layout", "error_page", "tooltip_label"]
+
+
+def tooltip_label(text: str, tooltip: TooltipContent) -> Element:
+    """Create a label with accessible tooltip.
+
+    Uses pure CSS tooltips with ARIA attributes for WCAG 2.1 AA compliance.
+    The tooltip content is stored in a data attribute for CSS display,
+    and in a hidden span for screen reader access.
+
+    Args:
+        text: The label text to display.
+        tooltip: TooltipContent object with description and optional guidance.
+
+    Returns:
+        htpy Element with tooltip trigger and accessible content.
+    """
+    # Build tooltip text including good/bad value guidance if present
+    tooltip_text = tooltip.description
+    if tooltip.good_values:
+        tooltip_text += f" Good: {tooltip.good_values}."
+    if tooltip.bad_values:
+        tooltip_text += f" Bad: {tooltip.bad_values}."
+
+    # Generate unique ID for aria-describedby
+    label_id = f"tip-{text.lower().replace(' ', '-').replace('/', '-')}"
+
+    return span(
+        ".tooltip-trigger",
+        tabindex="0",
+        role="button",
+        aria_describedby=label_id,
+        **{"data-tooltip": tooltip_text},
+    )[
+        text,
+        span(id=label_id, role="tooltip", **{"class": "sr-only"})[tooltip_text],
+    ]
 
 
 def base_layout(page_title: str, content: Element) -> Element:
