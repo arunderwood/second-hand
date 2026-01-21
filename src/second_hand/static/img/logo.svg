@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Option B: Clock with Sync Pulse -->
+  <!-- Second-hand with concentric sync pulse rings -->
+
+  <!-- Outer sync pulse ring -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Middle sync pulse ring -->
+  <circle cx="50" cy="50" r="36" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Inner sync pulse ring -->
+  <circle cx="50" cy="50" r="26" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Clock face markers (12, 3, 6, 9 positions) -->
+  <line x1="50" y1="8" x2="50" y2="14" stroke="#4ade80" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="92" y1="50" x2="86" y2="50" stroke="#4ade80" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="50" y1="92" x2="50" y2="86" stroke="#4ade80" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="8" y1="50" x2="14" y2="50" stroke="#4ade80" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Center pivot -->
+  <circle cx="50" cy="50" r="5" fill="#4ade80"/>
+
+  <!-- Second hand pointing to ~2 o'clock (dynamic angle) -->
+  <line x1="50" y1="50" x2="70" y2="20" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Sync indicator dot -->
+  <circle cx="70" cy="20" r="3" fill="#22d3ee"/>
+</svg>

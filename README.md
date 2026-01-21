@@ -1,5 +1,9 @@
 # second-hand
 
+<p align="center">
+  <img src="src/second_hand/static/img/logo.svg" alt="second-hand logo" width="100" height="100">
+</p>
+
 A modern, type-safe dashboard for monitoring chrony time synchronization statistics.
 
 ## Overview
