@@ -2,7 +2,7 @@
 
 from htpy import Element, div, h1, p
 
-from second_hand.services.chrony import ChronyData, fetch_chrony_data
+from second_hand.services.chrony import ChronyData, EnrichedSource, fetch_chrony_data
 
 from .base import base_layout
 from .error import error_banner
@@ -12,12 +12,17 @@ from .stats import stats_table
 from .tracking import tracking_section
 
 
-def dashboard_page(version: str, chrony_data: ChronyData | None = None) -> Element:
+def dashboard_page(
+    version: str,
+    chrony_data: ChronyData | None = None,
+    enriched_sources: list[EnrichedSource] | None = None,
+) -> Element:
     """Create the main dashboard page.
 
     Args:
         version: Application version string to display.
         chrony_data: Optional pre-fetched chrony data. If None, fetches fresh data.
+        enriched_sources: Optional enriched sources with hostname/geo data.
 
     Returns:
         Complete HTML dashboard page as an htpy Element.
@@ -27,7 +32,7 @@ def dashboard_page(version: str, chrony_data: ChronyData | None = None) -> Eleme
 
     content = div(".dashboard")[
         _header(version),
-        _main_content(data),
+        _main_content(data, enriched_sources),
         _footer(version),
     ]
     return base_layout("second-hand Dashboard", content)
@@ -41,7 +46,9 @@ def _header(version: str) -> Element:
     ]
 
 
-def _main_content(data: ChronyData) -> Element:
+def _main_content(
+    data: ChronyData, enriched_sources: list[EnrichedSource] | None = None
+) -> Element:
     """Create the main content area with all chrony sections."""
     sections: list[Element] = []
 
@@ -54,7 +61,11 @@ def _main_content(data: ChronyData) -> Element:
 
     # Only show other sections if we have data
     if data.is_connected:
-        if data.sources:
+        if enriched_sources:
+            # Use enriched sources if available (with hostname/geo data)
+            sections.append(sources_table(enriched_sources))
+        elif data.sources:
+            # Fall back to raw sources
             sections.append(sources_table(data.sources))
         if data.source_stats:
             sections.append(stats_table(data.source_stats))

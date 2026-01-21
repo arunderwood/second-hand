@@ -53,6 +53,8 @@ def base_layout(page_title: str, content: Element) -> Element:
     Returns:
         Complete HTML document as an htpy Element.
     """
+    from htpy import script
+
     return html(lang="en")[
         head[
             meta(charset="utf-8"),
@@ -61,7 +63,10 @@ def base_layout(page_title: str, content: Element) -> Element:
             link(rel="stylesheet", href="/static/css/style.css"),
             link(rel="icon", href="/static/favicon.svg", type="image/svg+xml"),
         ],
-        body[content],
+        body[
+            content,
+            script(src="/static/js/dashboard.js", defer=True),
+        ],
     ]
 
 

@@ -11,6 +11,7 @@ __all__ = [
     "format_frequency",
     "format_reachability_visual",
     "get_health_status",
+    "country_code_to_flag",
 ]
 
 # Health status thresholds based on industry-standard NTP values
@@ -170,3 +171,39 @@ def get_health_status(metric: str, value: float) -> HealthStatus:
 
     # Unknown metric - default to healthy
     return "healthy"
+
+
+def country_code_to_flag(country_code: str | None) -> str:
+    """Convert ISO 3166-1 alpha-2 country code to flag emoji.
+
+    Uses Unicode Regional Indicator Symbols to convert a two-letter
+    country code to its corresponding flag emoji.
+
+    Args:
+        country_code: Two-letter country code (e.g., "US", "GB", "DE"),
+                     or None/empty string.
+
+    Returns:
+        Flag emoji string (e.g., "\U0001f1fa\U0001f1f8" for US flag),
+        or empty string if input is invalid.
+
+    Examples:
+        >>> country_code_to_flag("US")
+        '\U0001f1fa\U0001f1f8'
+        >>> country_code_to_flag("GB")
+        '\U0001f1ec\U0001f1e7'
+        >>> country_code_to_flag(None)
+        ''
+        >>> country_code_to_flag("X")
+        ''
+    """
+    if not country_code or len(country_code) != 2:
+        return ""
+
+    # Regional Indicator Symbol Letter A is at codepoint U+1F1E6 (127462)
+    # We add 0x1F1A5 (127397) to ASCII uppercase letters to get the symbol
+    # 'A' = 65, 65 + 127397 = 127462 = U+1F1E6
+    try:
+        return "".join(chr(ord(c.upper()) + 0x1F1A5) for c in country_code)
+    except (TypeError, ValueError):
+        return ""
