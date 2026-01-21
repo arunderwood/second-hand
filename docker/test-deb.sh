@@ -92,12 +92,14 @@ else
     exit 1
 fi
 
-# Verify stratum is a number (not "N/A" which indicates no connection)
-if echo "$DASHBOARD" | grep -q "Stratum.*N/A"; then
-    echo "✗ Stratum shows N/A - chrony not connected"
+# Verify status is not "Unknown" (which indicates no chrony connection)
+# Note: We can't use greedy grep for "Stratum.*N/A" because htpy outputs HTML
+# on a single line, causing false matches with "N/A" in other stat boxes like Ref IP
+if echo "$DASHBOARD" | grep -q 'stat-value">Unknown<'; then
+    echo "✗ Status shows Unknown - chrony not connected"
     exit 1
 fi
-echo "✓ Dashboard shows valid stratum"
+echo "✓ Dashboard shows valid chrony status"
 
 # Verify no error messages
 if echo "$DASHBOARD" | grep -qiE "connection error|permission denied|failed to connect"; then
