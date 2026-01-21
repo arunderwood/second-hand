@@ -8,8 +8,6 @@ Wants=chronyd.service
 Type=simple
 User=second-hand
 Group=second-hand
-# Include chrony group for socket access (Debian 12 uses _chrony, older uses chrony)
-SupplementaryGroups=_chrony chrony
 ExecStart=/opt/venvs/second-hand/bin/second-hand
 Restart=on-failure
 RestartSec=5
