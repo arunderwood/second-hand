@@ -1,10 +1,8 @@
 # Dockerfile for testing .deb package with systemd
 # Uses pre-configured systemd image (supports amd64 + arm64)
 #
-# DEBIAN_VERSION is managed by CI matrix. We pin debian-12 to match our
-# build target (debian:bookworm). Note: dh-virtualenv packages are tied
-# to their build-time Python version, so forward-compatibility testing
-# with newer Debian versions is not supported.
+# DEBIAN_VERSION is managed by CI matrix. Pex packages work across
+# Python 3.11+ (Debian 12, 13, Ubuntu 24.04).
 ARG DEBIAN_VERSION=debian-12
 FROM ghcr.io/fauust/docker-systemd:${DEBIAN_VERSION}
 

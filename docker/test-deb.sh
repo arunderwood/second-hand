@@ -24,6 +24,25 @@ trap cleanup EXIT
 echo "Waiting for systemd to initialize..."
 sleep 10
 
+echo "=== Validating pex installation ==="
+if docker exec "$CONTAINER_NAME" test -f /usr/lib/second-hand/second-hand.pex; then
+    echo "✓ Pex file installed"
+else
+    echo "✗ Pex file not found at /usr/lib/second-hand/second-hand.pex"
+    exit 1
+fi
+
+if docker exec "$CONTAINER_NAME" test -L /usr/bin/second-hand; then
+    echo "✓ Symlink exists at /usr/bin/second-hand"
+else
+    echo "✗ Symlink not found at /usr/bin/second-hand"
+    exit 1
+fi
+
+# Verify Python version is in supported range
+PYTHON_VERSION=$(docker exec "$CONTAINER_NAME" python3 --version | cut -d' ' -f2)
+echo "Python version: $PYTHON_VERSION"
+
 # Wait for services with retry (emulation can be slow)
 wait_for_service() {
     local service=$1

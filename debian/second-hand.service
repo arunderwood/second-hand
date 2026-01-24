@@ -8,7 +8,7 @@ Wants=chronyd.service
 Type=simple
 User=second-hand
 Group=second-hand
-ExecStart=/opt/venvs/second-hand/bin/second-hand
+ExecStart=/usr/bin/python3 /usr/lib/second-hand/second-hand.pex
 Restart=on-failure
 RestartSec=5
 Environment=SECOND_HAND_HOST=0.0.0.0

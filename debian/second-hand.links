@@ -1,1 +1,1 @@
-opt/venvs/second-hand/bin/second-hand usr/bin/second-hand
+usr/lib/second-hand/second-hand.pex usr/bin/second-hand

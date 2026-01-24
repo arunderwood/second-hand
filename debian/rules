@@ -1,22 +1,14 @@
 #!/usr/bin/make -f
 
-export DH_VIRTUALENV_INSTALL_ROOT=/opt/venvs
-
 %:
-	dh $@ --with python-virtualenv
+	dh $@
 
-override_dh_virtualenv:
-	# Download pychrony from Test PyPI to a local directory
-	# This avoids conflicts with malicious packages on Test PyPI
-	mkdir -p debian/pychrony-wheels
-	pip3 download --dest debian/pychrony-wheels \
-		--index-url https://test.pypi.org/simple/ \
-		--extra-index-url https://pypi.org/simple/ \
-		--no-deps pychrony
-	# Build virtualenv using main PyPI, with local pychrony wheel
-	dh_virtualenv --python python3 \
-		--preinstall debian/pychrony-wheels/pychrony*.whl \
-		--extra-pip-arg --index-url=https://pypi.org/simple/
+override_dh_auto_build:
+	./scripts/build-pex.sh
+
+override_dh_auto_install:
+	install -D -m 755 dist/second-hand.pex \
+		debian/second-hand/usr/lib/second-hand/second-hand.pex
 
 # Skip dwz compression - pre-compiled binaries from wheels don't have debug sections
 override_dh_dwz:
