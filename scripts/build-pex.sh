@@ -3,6 +3,10 @@
 #
 # This creates a cross-Python-version executable that works with
 # Python 3.11+ without needing a virtualenv at install time.
+#
+# Note: C extensions in dependencies (pycares, pydantic-core, etc.) require
+# platform-specific wheels. The pex is built for the current platform only.
+# Build on Debian 12 for Debian-based targets.
 set -e
 
 # Install pex if not available
@@ -22,7 +26,10 @@ pip3 download --dest dist/pychrony-wheels \
     --extra-index-url https://pypi.org/simple/ \
     --no-deps pychrony
 
-# Build pex for current architecture
+echo "Downloaded pychrony wheels:"
+ls -la dist/pychrony-wheels/
+
+# Build pex for current platform
 # --python-shebang: Use env to find python3, works across distros
 # --find-links: Use local pychrony wheel
 # --interpreter-constraint: Support Python 3.11-3.14

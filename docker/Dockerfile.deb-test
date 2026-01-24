@@ -1,8 +1,8 @@
 # Dockerfile for testing .deb package with systemd
 # Uses pre-configured systemd image (supports amd64 + arm64)
 #
-# DEBIAN_VERSION is managed by CI matrix. Pex packages work across
-# Python 3.11+ (Debian 12, 13, Ubuntu 24.04).
+# DEBIAN_VERSION is managed by CI matrix. Pex packages built on Debian 12
+# work on Debian 12/13 (same manylinux wheel compatibility).
 ARG DEBIAN_VERSION=debian-12
 FROM ghcr.io/fauust/docker-systemd:${DEBIAN_VERSION}
 
