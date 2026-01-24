@@ -8,15 +8,13 @@ Vcs-Browser: https://github.com/arunderwood/second-hand
 Rules-Requires-Root: no
 Build-Depends: debhelper-compat (= 13),
                python3 (>= 3.11),
-               python3-venv,
-               python3-pip,
-               dh-virtualenv (>= 1.2.2)
+               python3-pip
 Standards-Version: 4.6.2
 
 Package: second-hand
 Architecture: any
 Pre-Depends: dpkg (>= 1.16.1)
-Depends: ${misc:Depends}, ${shlibs:Depends}, python3, chrony
+Depends: ${misc:Depends}, ${shlibs:Depends}, python3 (>= 3.11), chrony
 Provides: chrony-dashboard
 Description: Chrony time statistics dashboard
  A web dashboard for monitoring chrony NTP synchronization status.
@@ -28,5 +26,5 @@ Description: Chrony time statistics dashboard
   * Source statistics including offset, jitter, and skew
   * RTC (real-time clock) monitoring when available
  .
- Includes all Python dependencies in a self-contained virtualenv.
+ Uses a pex executable that works across Python 3.11+.
  Runs as a systemd service on port 8000 by default.
