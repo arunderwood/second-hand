@@ -22,7 +22,7 @@ def dashboard_page(
     Args:
         version: Application version string to display.
         chrony_data: Optional pre-fetched chrony data. If None, fetches fresh data.
-        enriched_sources: Optional enriched sources with hostname/geo data.
+        enriched_sources: Optional enriched sources with geo data.
 
     Returns:
         Complete HTML dashboard page as an htpy Element.
@@ -62,7 +62,7 @@ def _main_content(
     # Only show other sections if we have data
     if data.is_connected:
         if enriched_sources:
-            # Use enriched sources if available (with hostname/geo data)
+            # Use enriched sources if available (with geo data)
             sections.append(sources_table(enriched_sources))
         elif data.sources:
             # Fall back to raw sources

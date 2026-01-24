@@ -85,15 +85,19 @@ jobs:
             arch: arm64
             debian_version: debian-12
           # Debian 13 (trixie) - Python 3.12
-          # Note: Uses same manylinux wheels as Debian 12
           - runner: ubuntu-latest
             arch: amd64
             debian_version: debian-13
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: debian-13
-          # Note: Ubuntu 24.04 removed - requires separate build due to
-          # glibc version differences (manylinux_2_39 vs manylinux_2_17)
+          # Ubuntu 24.04 (noble) - Python 3.12
+          - runner: ubuntu-latest
+            arch: amd64
+            debian_version: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            debian_version: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6

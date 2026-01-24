@@ -17,10 +17,6 @@ class Settings(BaseSettings):
 
     # UI Enhancement settings
     refresh_interval: int = 30  # Dashboard auto-refresh interval in seconds
-    dns_timeout: float = 3.0  # DNS lookup timeout in seconds
-    dns_cache_ttl: int = 3600  # DNS cache TTL in seconds (1 hour)
-    dns_cache_maxsize: int = 1024  # Maximum DNS cache entries
-    dns_max_concurrent: int = 10  # Maximum concurrent DNS lookups
 
     model_config = {"env_prefix": "SECOND_HAND_"}
 

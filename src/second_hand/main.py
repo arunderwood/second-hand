@@ -16,7 +16,6 @@ from second_hand.components import dashboard_page
 from second_hand.components.base import error_page
 from second_hand.config import get_settings
 from second_hand.services.chrony import enrich_sources, fetch_chrony_data
-from second_hand.services.dns import DNSService
 from second_hand.services.geoip import GeoIPService
 
 logger = logging.getLogger(__name__)
@@ -29,23 +28,18 @@ STATIC_DIR = Path(__file__).parent / "static"
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle for services.
 
-    Initializes GeoIP and DNS services at startup and cleans up on shutdown.
+    Initializes GeoIP service at startup and cleans up on shutdown.
     """
     # Startup: Initialize services
     logger.info("Initializing GeoIP service (ip-api.com)...")
     GeoIPService.get_instance()
     logger.info("GeoIP service initialized")
 
-    logger.info("Initializing DNS service...")
-    DNSService.get_instance()
-    logger.info("DNS service initialized")
-
     yield
 
     # Shutdown: Cleanup services
     logger.info("Shutting down services...")
     GeoIPService.reset_instance()
-    DNSService.reset_instance()
     logger.info("Services shut down successfully")
 
 
@@ -66,7 +60,7 @@ async def dashboard() -> str:
     """Render the main dashboard page with enriched source data."""
     chrony_data = fetch_chrony_data()
 
-    # Enrich sources with hostname and geo data if we have sources
+    # Enrich sources with geo data if we have sources
     enriched_sources = None
     if chrony_data.sources:
         enriched_sources = await enrich_sources(chrony_data.sources)
@@ -91,7 +85,7 @@ async def api_sources() -> JSONResponse:
     """Get enriched NTP sources as JSON for real-time updates.
 
     Returns all NTP sources with enriched display data including
-    resolved hostnames and geolocation information.
+    geolocation information.
 
     Returns:
         JSON response with sources, timestamp, sync status, and refresh interval.
@@ -109,7 +103,7 @@ async def api_sources() -> JSONResponse:
             },
         )
 
-    # Enrich sources with hostname and geo data
+    # Enrich sources with geo data
     enriched = await enrich_sources(chrony_data.sources)
 
     # Build response per API contract
@@ -132,7 +126,6 @@ async def api_sources() -> JSONResponse:
         sources_data.append(
             {
                 "address": source.address,
-                "hostname": es.hostname,
                 "display_name": es.display_name,
                 "country_code": es.country_code,
                 "country_name": es.country_name,
