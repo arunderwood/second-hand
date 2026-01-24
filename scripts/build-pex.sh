@@ -30,6 +30,7 @@ echo "Building for architecture: $ARCH_SUFFIX"
 # Download pychrony wheels from Test PyPI for ALL target Python versions
 # pip download only grabs wheels for the current Python, so we need to
 # explicitly download for each target version
+# pychrony publishes manylinux_2_28 for x86_64, manylinux_2_17 for aarch64
 for pyver in 3.11 3.12 3.13; do
     echo "Downloading pychrony for Python $pyver..."
     pip3 download --dest dist/pychrony-wheels \
@@ -39,6 +40,7 @@ for pyver in 3.11 3.12 3.13; do
         --python-version "$pyver" \
         --only-binary=:all: \
         --platform "manylinux_2_17_${ARCH_SUFFIX}" \
+        --platform "manylinux_2_28_${ARCH_SUFFIX}" \
         pychrony || echo "Warning: No wheel for Python $pyver"
 done
 
@@ -48,7 +50,7 @@ ls -la dist/pychrony-wheels/
 # Build multi-Python pex for current architecture
 # --resolve-local-platforms: Resolve for local Python (3.11 on Debian 12)
 # --platform: Add wheels for Python 3.12 and 3.13
-# Uses manylinux_2_17 for broad compatibility (works on glibc 2.17+)
+# Include both manylinux_2_17 (pydantic-core, cffi) and manylinux_2_28 (pychrony)
 python3 -m pex . \
     --python-shebang='/usr/bin/env python3' \
     --find-links=dist/pychrony-wheels \
@@ -56,7 +58,9 @@ python3 -m pex . \
     --pip-version=24.2 \
     --resolve-local-platforms \
     --platform "manylinux_2_17_${ARCH_SUFFIX}-cp-312-cp312" \
+    --platform "manylinux_2_28_${ARCH_SUFFIX}-cp-312-cp312" \
     --platform "manylinux_2_17_${ARCH_SUFFIX}-cp-313-cp313" \
+    --platform "manylinux_2_28_${ARCH_SUFFIX}-cp-313-cp313" \
     -o dist/second-hand.pex \
     -c second-hand
 
