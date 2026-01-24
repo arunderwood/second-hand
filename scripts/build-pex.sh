@@ -6,8 +6,9 @@
 set -e
 
 # Install pex if not available
-if ! command -v pex &> /dev/null; then
-    pip3 install pex
+# Use --break-system-packages for Debian 12+ (PEP 668) in build containers
+if ! python3 -m pex --version &> /dev/null; then
+    pip3 install --break-system-packages pex || pip3 install pex
 fi
 
 # Create output directory
@@ -26,7 +27,7 @@ pip3 download --dest dist/pychrony-wheels \
 # --find-links: Use local pychrony wheel
 # --interpreter-constraint: Support Python 3.11-3.14
 # -c: Entry point console script
-pex . \
+python3 -m pex . \
     --python-shebang='/usr/bin/env python3' \
     --find-links=dist/pychrony-wheels \
     --interpreter-constraint='>=3.11,<4' \
