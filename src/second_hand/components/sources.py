@@ -134,7 +134,7 @@ def _source_row(source: Source | EnrichedSource) -> Element:
         span(".countdown")[poll_formatted]  # Static fallback
     ]
 
-    # Get display name (hostname + IP for enriched, just address for plain)
+    # Get display name from source
     if isinstance(source, EnrichedSource):
         display_name = source.display_name
         # Add country flag if available
