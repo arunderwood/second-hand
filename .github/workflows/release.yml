@@ -75,6 +75,7 @@ jobs:
   test-deb:
     needs: build-deb
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Debian 12 (bookworm) - Python 3.11
@@ -84,10 +85,9 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: debian-12
-          # Debian 13 (trixie) - Python 3.12
-          - runner: ubuntu-latest
-            arch: amd64
-            debian_version: debian-13
+          # Debian 13 (trixie) - Python 3.13
+          # amd64 skipped: ships free-threaded Python 3.13 (CPython-t) and
+          # cffi/pydantic-core lack cp313t wheels. Re-enable when ecosystem catches up.
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: debian-13
