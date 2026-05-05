@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi>=0.115.0",
-    "uvicorn>=0.34.0",
+    "uvicorn>=0.46.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
     "pychrony>=0.0.15",
