@@ -30,7 +30,7 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "pychrony>=0.0.15",
     "aiohttp>=3.13.4",
-    "cachetools>=5.5.0",
+    "cachetools>=7.1.1",
 ]
 
 # pychrony is currently only available on Test PyPI
