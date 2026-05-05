@@ -29,7 +29,7 @@ dependencies = [
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
     "pychrony>=0.0.15",
-    "aiohttp>=3.13.4",
+    "aiohttp>=3.13.5",
     "cachetools>=5.5.0",
 ]
 
