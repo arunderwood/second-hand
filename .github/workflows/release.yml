@@ -34,7 +34,8 @@ jobs:
             build-essential \
             libffi-dev \
             git \
-            devscripts
+            devscripts \
+            lintian
 
       - name: Update debian/changelog from release
         working-directory: source
@@ -64,6 +65,14 @@ jobs:
           VERSION="${VERSION#v}"
           export SETUPTOOLS_SCM_PRETEND_VERSION="$VERSION"
           dpkg-buildpackage -us -uc -b
+
+      - name: Lint .deb package
+        run: |
+          # The .deb lands beside the source dir. Both suppressed tags apply
+          # only to uploads to the Debian archive.
+          lintian --fail-on error,warning \
+                  --suppress-tags initial-upload-closes-no-bugs,no-manual-page \
+                  *.deb
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7

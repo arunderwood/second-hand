@@ -15,7 +15,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test fetching tracking data from real chronyd."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         assert data.error is None, f"Unexpected error: {data.error}"
         assert data.tracking is not None
@@ -27,7 +27,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test that tracking data has all expected fields."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         assert data.tracking is not None
         tracking = data.tracking
@@ -44,7 +44,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test fetching sources list from real chronyd."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         assert data.error is None
         # Sources list might be empty if no NTP sources configured
@@ -56,7 +56,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test that source data has expected fields when sources exist."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         for source in data.sources:
             assert isinstance(source.address, str)
@@ -71,7 +71,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test fetching source statistics from real chronyd."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         assert data.error is None
         # Source stats list might be empty if no NTP sources configured
@@ -83,7 +83,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test that source stats have expected fields when they exist."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         for stats in data.source_stats:
             assert isinstance(stats.address, str)
@@ -98,7 +98,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test RTC data handling (may be None if not configured)."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         assert data.error is None
         # RTC data might be None if RTC tracking not configured
@@ -113,7 +113,7 @@ class TestChronyIntegration:
         chrony_socket_path: str,
     ) -> None:
         """Test ChronyData computed properties."""
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
 
         # is_connected should be True when we have tracking data
         assert data.is_connected is True
@@ -136,7 +136,7 @@ class TestDashboardIntegration:
         """Test that dashboard renders correctly with real chrony data."""
         from second_hand.components.dashboard import dashboard_page
 
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
         page = dashboard_page(version="test", chrony_data=data)
         html = str(page)
 
@@ -155,7 +155,7 @@ class TestDashboardIntegration:
         """Test that dashboard shows synchronization status."""
         from second_hand.components.dashboard import dashboard_page
 
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
         page = dashboard_page(version="test", chrony_data=data)
         html = str(page)
 
@@ -170,7 +170,7 @@ class TestDashboardIntegration:
         """Test that dashboard shows stratum value."""
         from second_hand.components.dashboard import dashboard_page
 
-        data = fetch_chrony_data(socket_path=chrony_socket_path)
+        data = fetch_chrony_data(address=chrony_socket_path)
         page = dashboard_page(version="test", chrony_data=data)
         html = str(page)
 

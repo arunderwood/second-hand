@@ -5,6 +5,9 @@ case "$1" in
     purge)
         # Remove system user on purge
         deluser --system second-hand || true
+
+        # CacheDirectory is cleared by `systemctl clean`, not by package removal.
+        rm -rf /var/cache/second-hand
         ;;
 esac
 
