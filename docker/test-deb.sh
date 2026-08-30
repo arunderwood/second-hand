@@ -3,6 +3,13 @@ set -e
 
 CONTAINER_NAME="second-hand-deb-test"
 
+# Ceiling for `systemd-analyze security`. --threshold takes the internal 0-100
+# scale, which is ten times the exposure level the tool prints: 20 here is the
+# "2.0" a reader sees. The hardened unit scores 1.5 on systemd 252-257, so this
+# leaves room for new checks in later systemd releases while still catching a
+# directive being dropped.
+SECURITY_THRESHOLD="${SECURITY_THRESHOLD:-20}"
+
 # Detect platform from image (allows testing across architectures)
 PLATFORM=$(docker inspect second-hand-deb-test:latest --format '{{.Architecture}}')
 echo "Detected image platform: $PLATFORM"
@@ -168,6 +175,19 @@ if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -qE "Sync
     echo "✓ Dashboard recovers once the command port is restored"
 else
     echo "✗ Dashboard did not recover after restoring the command port"
+    exit 1
+fi
+
+echo "=== Checking systemd hardening score ==="
+# systemd-analyze security needs the unit loaded, which is why this runs against
+# the live container rather than as a static lint on debian/second-hand.service.
+if docker exec "$CONTAINER_NAME" \
+    systemd-analyze security --threshold="$SECURITY_THRESHOLD" --no-pager second-hand.service; then
+    echo "✓ Hardening score within the ${SECURITY_THRESHOLD} ceiling"
+else
+    echo "✗ second-hand.service exposure exceeds the ${SECURITY_THRESHOLD} ceiling"
+    echo "  Restore the dropped hardening directive, or raise SECURITY_THRESHOLD"
+    echo "  in this script if the increase is a deliberate, understood tradeoff."
     exit 1
 fi
 

@@ -3,9 +3,20 @@ name: Build and Release
 on:
   release:
     types: [published]
+  # Without this, packaging changes get no CI feedback until a release is cut,
+  # which is how several packaging bugs reached releases. Any PR touching a
+  # packaging input builds and tests the .deb; only upload-release is gated on
+  # the release event.
+  pull_request:
+    paths:
+      - debian/**
+      - scripts/build-pex.sh
+      - docker/Dockerfile.deb-test
+      - docker/test-deb.sh
+      - .github/workflows/release.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-deb:
@@ -38,6 +49,7 @@ jobs:
             lintian
 
       - name: Update debian/changelog from release
+        if: github.event_name == 'release'
         working-directory: source
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
@@ -63,6 +75,10 @@ jobs:
           # Strip 'v' prefix for SETUPTOOLS_SCM_PRETEND_VERSION
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
+          # tag_name is empty on pull_request. Fall back to the version already
+          # in debian/changelog, which the changelog step only rewrites for a
+          # real release, so the pex and the .deb agree on either path.
+          VERSION="${VERSION:-0.0.0}"
           export SETUPTOOLS_SCM_PRETEND_VERSION="$VERSION"
           dpkg-buildpackage -us -uc -b
 
@@ -131,6 +147,9 @@ jobs:
 
   upload-release:
     needs: test-deb
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
