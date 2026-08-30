@@ -71,15 +71,16 @@
 ```python
 from htpy import html, head, title, body, div, h1, p
 
+
 def dashboard_page(version: str) -> Element:
     return html[
         head[title["second-hand Dashboard"]],
         body[
             div(".container")[
                 h1["Chrony Time Statistics"],
-                p[f"Version {version} - Awaiting chrony connection"]
+                p[f"Version {version} - Awaiting chrony connection"],
             ]
-        ]
+        ],
     ]
 ```
 
@@ -129,6 +130,7 @@ def dashboard_page(version: str) -> Element:
 **Testing Pattern with htpy**:
 ```python
 from second_hand.components.dashboard import dashboard_page
+
 
 def test_dashboard_page_contains_version():
     result = str(dashboard_page(version="0.1.0"))
@@ -211,6 +213,7 @@ from second_hand.components.dashboard import dashboard_page
 app = FastAPI(title="second-hand")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard() -> str:
     return str(dashboard_page(version="0.1.0"))
@@ -222,6 +225,7 @@ async def dashboard() -> str:
 # components/base.py
 from htpy import Element, html, head, title, meta, link, body
 
+
 def base_layout(page_title: str, content: Element) -> Element:
     return html(lang="en")[
         head[
@@ -230,7 +234,7 @@ def base_layout(page_title: str, content: Element) -> Element:
             title[page_title],
             link(rel="stylesheet", href="/static/css/style.css"),
         ],
-        body[content]
+        body[content],
     ]
 ```
 
@@ -240,13 +244,14 @@ from htpy import Element, div, h1, p, section
 
 from .base import base_layout
 
+
 def dashboard_page(version: str) -> Element:
     content = div(".dashboard")[
         h1["second-hand Dashboard"],
         section(".stats-placeholder")[
             p["Chrony time statistics will appear here."],
-            p(".version")[f"Version {version}"]
-        ]
+            p(".version")[f"Version {version}"],
+        ],
     ]
     return base_layout("second-hand Dashboard", content)
 ```
@@ -256,6 +261,7 @@ def dashboard_page(version: str) -> Element:
 ```python
 # config.py
 from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     debug: bool = False
@@ -273,6 +279,7 @@ class Settings(BaseSettings):
 from second_hand.components.dashboard import dashboard_page
 from second_hand.components.base import base_layout
 
+
 def test_dashboard_page_structure():
     page = dashboard_page(version="1.0.0")
     html = str(page)
@@ -280,8 +287,10 @@ def test_dashboard_page_structure():
     assert "Version 1.0.0" in html
     assert "Chrony time statistics" in html
 
+
 def test_base_layout_includes_title():
     from htpy import p
+
     page = base_layout("Test Page", p["content"])
     html = str(page)
     assert "<title>Test Page</title>" in html

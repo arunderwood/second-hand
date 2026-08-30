@@ -12,10 +12,10 @@
 **API Summary**:
 ```python
 from pychrony import (
-    get_tracking,      # Returns TrackingStatus
-    get_sources,       # Returns list[Source]
+    get_tracking,  # Returns TrackingStatus
+    get_sources,  # Returns list[Source]
     get_source_stats,  # Returns list[SourceStats]
-    get_rtc_data,      # Returns RTCData (may raise ChronyDataError)
+    get_rtc_data,  # Returns RTCData (may raise ChronyDataError)
 )
 ```
 
@@ -80,8 +80,7 @@ pychrony = { index = "testpypi" }
 3. **Test markers**: Use pytest marks for integration tests
    ```python
    @pytest.mark.integration
-   def test_tracking_display():
-       ...
+   def test_tracking_display(): ...
    ```
 
 **chrony.conf for testing**:
@@ -141,6 +140,7 @@ integration-test:
 from dataclasses import dataclass
 from typing import Optional
 
+
 @dataclass
 class ChronyData:
     tracking: Optional[TrackingStatus]
@@ -148,6 +148,7 @@ class ChronyData:
     source_stats: list[SourceStats]
     rtc: Optional[RTCData]
     error: Optional[str]
+
 
 def fetch_chrony_data() -> ChronyData:
     """Fetch all chrony data, handling errors gracefully."""
@@ -186,6 +187,7 @@ def stat_box(title: str, value: str, status: str = "") -> Element:
         div(".stat-title")[title],
         div(".stat-value")[value],
     ]
+
 
 def data_table(headers: list[str], rows: list[list[str]]) -> Element:
     """Create a data table with headers."""

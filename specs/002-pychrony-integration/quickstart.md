@@ -85,10 +85,19 @@ Core service for fetching chrony data:
 ```python
 from dataclasses import dataclass
 from pychrony import (
-    get_tracking, get_sources, get_source_stats, get_rtc_data,
-    TrackingStatus, Source, SourceStats, RTCData,
-    ChronyConnectionError, ChronyPermissionError, ChronyDataError,
+    get_tracking,
+    get_sources,
+    get_source_stats,
+    get_rtc_data,
+    TrackingStatus,
+    Source,
+    SourceStats,
+    RTCData,
+    ChronyConnectionError,
+    ChronyPermissionError,
+    ChronyDataError,
 )
+
 
 @dataclass
 class ChronyData:
@@ -102,6 +111,7 @@ class ChronyData:
     def is_connected(self) -> bool:
         return self.error is None and self.tracking is not None
 
+
 def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
     """Fetch all chrony data from chronyd."""
     try:
@@ -109,11 +119,13 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
         sources = get_sources(socket_path=socket_path)
         source_stats = get_source_stats(socket_path=socket_path)
     except ChronyConnectionError:
-        return ChronyData(None, [], [], None,
-            "Unable to connect to chronyd. Is the service running?")
+        return ChronyData(
+            None, [], [], None, "Unable to connect to chronyd. Is the service running?"
+        )
     except ChronyPermissionError:
-        return ChronyData(None, [], [], None,
-            "Permission denied. Add your user to the chrony group.")
+        return ChronyData(
+            None, [], [], None, "Permission denied. Add your user to the chrony group."
+        )
 
     try:
         rtc = get_rtc_data(socket_path=socket_path)
