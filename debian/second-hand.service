@@ -21,11 +21,43 @@ Environment=SECOND_HAND_PORT=8000
 CacheDirectory=second-hand
 Environment=PEX_ROOT=/var/cache/second-hand
 
-# Security hardening
+# Security hardening. `systemd-analyze security` scores this unit 1.5; the .deb
+# integration tests enforce a ceiling so the score cannot drift back up.
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+UMask=0077
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# The dashboard runs as a non-root user and binds port 8000, so it needs no
+# capabilities whatsoever.
+CapabilityBoundingSet=
+
+# chronyd is reached over UDP, but AF_UNIX stays: glibc talks to
+# systemd-resolved over a Unix socket, which the GeoIP lookups depend on.
+# Excluding it saves 0.1 of exposure and would break name resolution on any
+# host using resolved.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# No MemoryDenyWriteExecute: pychrony is cffi-based, and libffi closures need
+# writable-executable pages. Adding it breaks the service at runtime only.
 
 [Install]
 WantedBy=multi-user.target
