@@ -75,10 +75,13 @@ jobs:
           # Strip 'v' prefix for SETUPTOOLS_SCM_PRETEND_VERSION
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
-          # tag_name is empty on pull_request. Fall back to the version already
-          # in debian/changelog, which the changelog step only rewrites for a
-          # real release, so the pex and the .deb agree on either path.
-          VERSION="${VERSION:-0.0.0}"
+          # tag_name is empty on pull_request, where the changelog step above is
+          # skipped. Read the version debian/changelog already carries, minus its
+          # Debian revision, so the pex and the .deb agree on either path.
+          if [ -z "$VERSION" ]; then
+            VERSION="$(dpkg-parsechangelog -S Version)"
+            VERSION="${VERSION%-*}"
+          fi
           export SETUPTOOLS_SCM_PRETEND_VERSION="$VERSION"
           dpkg-buildpackage -us -uc -b
 
