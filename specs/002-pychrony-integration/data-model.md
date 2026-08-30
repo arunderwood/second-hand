@@ -135,6 +135,7 @@ Aggregated container for all chrony data, used for dashboard rendering.
 @dataclass
 class ChronyData:
     """Container for all chrony data fetched for dashboard display."""
+
     tracking: TrackingStatus | None
     sources: list[Source]
     source_stats: list[SourceStats]

@@ -125,11 +125,9 @@ This project uses [htpy](https://htpy.dev/) for type-safe HTML generation:
 # Type-safe, IDE-friendly, testable
 from htpy import div, h1, p
 
+
 def my_component(title: str) -> Element:
-    return div(".card")[
-        h1[title],
-        p["Content here"]
-    ]
+    return div(".card")[h1[title], p["Content here"]]
 ```
 
 Benefits:
