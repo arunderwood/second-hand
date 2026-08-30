@@ -28,20 +28,10 @@ dependencies = [
     "uvicorn>=0.46.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
-    "pychrony>=0.2.4",
+    "pychrony>=2.0.0,<3",
     "aiohttp>=3.13.4",
     "cachetools>=7.1.1",
 ]
-
-# pychrony is currently only available on Test PyPI
-# Remove this index once pychrony is published to main PyPI
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-explicit = true
-
-[tool.uv.sources]
-pychrony = { index = "testpypi" }
 
 [project.optional-dependencies]
 dev = [

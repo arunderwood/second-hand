@@ -15,6 +15,7 @@ src/second_hand/
 ├── __init__.py
 ├── main.py
 ├── config.py
+├── middleware.py
 ├── components/
 │   ├── __init__.py
 │   ├── base.py
@@ -26,10 +27,15 @@ src/second_hand/
 │   └── tracking.py
 ├── services/
 │   ├── __init__.py
-│   └── chrony.py
-└── utils/
-    └── __init__.py
-src/static/css/
+│   ├── chrony.py
+│   └── geoip.py
+├── utils/
+│   └── __init__.py
+└── static/
+    ├── css/
+    ├── img/
+    └── js/
+debian/
 tests/
 ```
 

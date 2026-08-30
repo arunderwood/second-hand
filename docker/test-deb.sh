@@ -128,5 +128,48 @@ if echo "$DASHBOARD" | grep -qiE "connection error|permission denied|failed to c
 fi
 echo "✓ No connection errors in dashboard"
 
+# The dashboard reads chronyd's command port, so "cmdport 0" is the realistic way
+# an operator breaks it. The failure must stay a rendered message: pychrony raises
+# ChronyConnectionError here, which the service catches, and a regression to an
+# uncaught error would surface as a 500 rather than anything the positive tests see.
+echo "=== Testing graceful degradation when chronyd's command port is disabled ==="
+docker exec "$CONTAINER_NAME" sh -c 'echo "cmdport 0" >> /etc/chrony/chrony.conf'
+docker exec "$CONTAINER_NAME" systemctl restart chrony
+sleep 3
+
+BROKEN_CODE=$(docker exec "$CONTAINER_NAME" curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
+if [ "$BROKEN_CODE" != "200" ]; then
+    echo "✗ Dashboard returned HTTP $BROKEN_CODE with the command port disabled, expected 200"
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 30 || true
+    exit 1
+fi
+echo "✓ Dashboard still returns 200 with the command port disabled"
+
+BROKEN=$(docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/)
+if echo "$BROKEN" | grep -qi "Unable to connect to chronyd"; then
+    echo "✓ Dashboard explains the failure instead of erroring out"
+else
+    echo "✗ Dashboard did not show the chronyd connection message"
+    echo "$BROKEN"
+    exit 1
+fi
+
+if docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager | grep -qE "Traceback|ChronyDataError"; then
+    echo "✗ Unhandled exception while the command port was disabled"
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 40
+    exit 1
+fi
+echo "✓ No unhandled exceptions"
+
+docker exec "$CONTAINER_NAME" sh -c 'sed -i "/^cmdport 0$/d" /etc/chrony/chrony.conf'
+docker exec "$CONTAINER_NAME" systemctl restart chrony
+sleep 3
+if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -qE "Synchronized|Not Synchronized"; then
+    echo "✓ Dashboard recovers once the command port is restored"
+else
+    echo "✗ Dashboard did not recover after restoring the command port"
+    exit 1
+fi
+
 echo ""
 echo "✅ All .deb integration tests passed!"

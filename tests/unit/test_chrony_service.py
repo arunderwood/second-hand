@@ -170,7 +170,10 @@ class TestFetchChronyData:
         result = fetch_chrony_data()
 
         assert result.tracking is None
-        assert result.error == "Permission denied. Add your user to the chrony group."
+        assert result.error == (
+            "Permission denied connecting to chronyd at 127.0.0.1:323. "
+            "Check that chronyd's command port is reachable."
+        )
         assert result.is_connected is False
 
     @patch("second_hand.services.chrony.ChronyConnection")
@@ -199,14 +202,31 @@ class TestFetchChronyData:
         assert result.is_connected is True
 
     @patch("second_hand.services.chrony.ChronyConnection")
-    def test_custom_socket_path_passed_to_connection(
+    def test_custom_address_passed_to_connection(
         self, mock_connection_class: MagicMock
     ) -> None:
-        """Test custom socket path is passed to ChronyConnection."""
+        """Test a custom address is passed through to ChronyConnection."""
         mock_connection_class.return_value.__enter__.side_effect = (
             ChronyConnectionError("No connection")
         )
 
-        fetch_chrony_data(socket_path="/custom/socket.sock")
+        fetch_chrony_data(address="/custom/socket.sock")
 
         mock_connection_class.assert_called_once_with("/custom/socket.sock")
+
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_defaults_to_configured_address_never_autodetect(
+        self, mock_connection_class: MagicMock
+    ) -> None:
+        """Test the default is an explicit address rather than auto-detect.
+
+        Auto-detect can settle on an unreachable Unix socket without falling
+        back to the command port, so the default must stay explicit.
+        """
+        mock_connection_class.return_value.__enter__.side_effect = (
+            ChronyConnectionError("No connection")
+        )
+
+        fetch_chrony_data()
+
+        mock_connection_class.assert_called_once_with("127.0.0.1:323")

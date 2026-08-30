@@ -1,8 +1,10 @@
 [Unit]
 Description=second-hand Chrony Dashboard
 Documentation=https://github.com/arunderwood/second-hand
-After=network.target chronyd.service
-Wants=chronyd.service
+# chronyd.service is an [Install] Alias= of chrony.service on Debian, so it
+# resolves only while chrony is enabled.
+After=network.target chrony.service chronyd.service
+Wants=chrony.service
 
 [Service]
 Type=simple
@@ -13,6 +15,11 @@ Restart=on-failure
 RestartSec=5
 Environment=SECOND_HAND_HOST=0.0.0.0
 Environment=SECOND_HAND_PORT=8000
+
+# The service user has no home, so pex's default PEX_ROOT is unwritable and the
+# pex would re-extract to a temporary directory on every start.
+CacheDirectory=second-hand
+Environment=PEX_ROOT=/var/cache/second-hand
 
 # Security hardening
 NoNewPrivileges=yes
