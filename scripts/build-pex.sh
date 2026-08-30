@@ -27,13 +27,11 @@ esac
 
 echo "Building for architecture: $ARCH_SUFFIX"
 
-# Select manylinux variant per architecture:
-#   x86_64:  manylinux_2_28 — pychrony only publishes 2_5 + 2_28 (no 2_17)
-#   aarch64: manylinux_2_17 — pydantic-core only publishes 2_17 (no 2_28)
-case "$ARCH_SUFFIX" in
-    x86_64)  MANYLINUX="manylinux_2_28" ;;
-    aarch64) MANYLINUX="manylinux_2_17" ;;
-esac
+# pip's --platform only walks the compatibility ladder for the legacy
+# manylinux2014/2010 prefixes, not PEP 600 manylinux_x_y. manylinux2014 is the
+# one request every dependency matches; a PEP 600 request hides pydantic-core
+# and silently falls back to building it from source.
+MANYLINUX="manylinux2014"
 
 # Download pychrony wheels from Test PyPI for ALL target Python versions
 # pip download only grabs wheels for the current Python, so we need to
@@ -56,7 +54,6 @@ ls -la dist/pychrony-wheels/
 # Build multi-Python pex for current architecture
 # --resolve-local-platforms: Resolve for local Python (3.11 on Debian 12)
 # --platform: Add wheels for Python 3.12 and 3.13
-# Use arch-specific manylinux for foreign platform resolution
 python3 -m pex . \
     --python-shebang='/usr/bin/env python3' \
     --find-links=dist/pychrony-wheels \
