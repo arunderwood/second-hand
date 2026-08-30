@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Initializes GeoIP service at startup and cleans up on shutdown.
     """
     # Startup: Initialize services
-    logger.info("Initializing GeoIP service (ip-api.com)...")
+    logger.info("Initializing GeoIP service (ipwho.is)...")
     GeoIPService.get_instance()
     logger.info("GeoIP service initialized")
 

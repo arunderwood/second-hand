@@ -85,6 +85,7 @@ Python 3.14: Follow standard conventions with full type hints. Use htpy for HTML
 - Integration tests MUST run against a real chronyd server when testing pychrony functionality
 - If the connection to chronyd cannot be made, the tests MUST fail (not skip)
 - Integration tests MUST be orchestrated against a dockerized version of chronyd to maximize portability of test execution
-- Run integration tests via: `docker compose -f docker/docker-compose.test.yml run --rm test-integration`
+- Run integration tests via: `docker compose -f docker/docker-compose.test.yml run --rm --build test-integration`
+- The `--build` flag is required. The compose service has no bind mount, so `run` reuses whatever image already exists and will otherwise test stale code — including code from a different worktree — while reporting a pass.
 
 <!-- MANUAL ADDITIONS END -->

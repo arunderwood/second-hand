@@ -1,7 +1,7 @@
-"""GeoIP service for IP address geolocation via ip-api.com.
+"""GeoIP service for IP address geolocation via ipwho.is.
 
-Provides country-level geolocation using the free ip-api.com web service.
-The service handles private IPs gracefully and caches results.
+Provides country-level geolocation using the free ipwho.is web service over
+HTTPS. The service handles private IPs gracefully and caches results.
 """
 
 import ipaddress
@@ -14,8 +14,14 @@ from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
 
-# ip-api.com free tier: 45 requests/minute, no API key needed
-GEOIP_API_URL = "http://ip-api.com/json/{ip}?fields=status,countryCode,country"
+# ipwho.is free tier: 1000 requests/day per client IP, no API key needed.
+# HTTPS is required so on-path attackers cannot tamper with the country data
+# that is rendered into the dashboard.
+GEOIP_API_URL = "https://ipwho.is/{ip}?fields=success,message,country_code,country"
+
+# Longest real country name is well under this; the cap only exists to bound
+# what a misbehaving upstream can put into the rendered page.
+MAX_COUNTRY_NAME_LENGTH = 64
 
 
 @dataclass
@@ -35,12 +41,51 @@ class GeoIPResult:
     country_name: str | None
 
 
-class GeoIPService:
-    """Service for looking up IP address geolocation via ip-api.com.
+def _clean_country_code(value: object) -> str | None:
+    """Validate an upstream country code, returning None if implausible.
 
-    Uses the free ip-api.com API for country-level lookups.
+    HTTPS authenticates the transport, but the payload is still third-party
+    data that ends up in the rendered dashboard. Accept only ISO 3166-1
+    alpha-2 shaped values so a misbehaving upstream cannot inject arbitrary
+    strings.
+
+    Args:
+        value: Raw ``country_code`` field from the API response.
+
+    Returns:
+        The upper-cased two-letter code, or None if it is not alpha-2 shaped.
+    """
+    if not isinstance(value, str):
+        return None
+    code = value.strip().upper()
+    if len(code) != 2 or not code.isascii() or not code.isalpha():
+        return None
+    return code
+
+
+def _clean_country_name(value: object) -> str | None:
+    """Validate an upstream country name, returning None if implausible.
+
+    Args:
+        value: Raw ``country`` field from the API response.
+
+    Returns:
+        The stripped name, or None if it is empty or implausibly long.
+    """
+    if not isinstance(value, str):
+        return None
+    name = value.strip()
+    if not name or len(name) > MAX_COUNTRY_NAME_LENGTH:
+        return None
+    return name
+
+
+class GeoIPService:
+    """Service for looking up IP address geolocation via ipwho.is.
+
+    Uses the free ipwho.is API over HTTPS for country-level lookups.
     Implements singleton pattern for application lifecycle management.
-    Results are cached to minimize API calls (45 req/min limit).
+    Results are cached to minimize API calls (1000 req/day limit).
 
     Attributes:
         failure_count: Counter for tracking GeoIP lookup failures (FR-024).
@@ -109,7 +154,7 @@ class GeoIPService:
 
                 data = await response.json()
 
-                if data.get("status") != "success":
+                if not data.get("success"):
                     logger.debug(
                         "GeoIP lookup failed for %s: %s", ip, data.get("message")
                     )
@@ -126,8 +171,8 @@ class GeoIPService:
                 result = GeoIPResult(
                     ip_address=ip,
                     is_private=False,
-                    country_code=data.get("countryCode"),
-                    country_name=data.get("country"),
+                    country_code=_clean_country_code(data.get("country_code")),
+                    country_name=_clean_country_name(data.get("country")),
                 )
                 self._cache[ip] = result
                 return result
