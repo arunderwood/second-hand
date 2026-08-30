@@ -37,7 +37,9 @@ dependencies = [
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=6.0.0",
-    "httpx>=0.28.0",
+    # Backs fastapi.testclient.TestClient. starlette.testclient imports httpx2
+    # and only falls back to httpx with a deprecation warning.
+    "httpx2>=2.12.0",
     "ty>=0.0.1a0",
     "ruff>=0.15.12",
 ]
