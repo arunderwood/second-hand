@@ -68,9 +68,38 @@ All settings are optional with sensible defaults:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SECOND_HAND_DEBUG` | `false` | Enable debug mode |
+| `SECOND_HAND_DEBUG` | `false` | Dev mode: auto-reload plus `/docs` and `/redoc` |
 | `SECOND_HAND_HOST` | `127.0.0.1` | Server bind address |
 | `SECOND_HAND_PORT` | `8000` | Server bind port |
+| `SECOND_HAND_HSTS_MAX_AGE` | `0` | HSTS `max-age` in seconds; `0` disables the header. Only set this when serving over HTTPS |
+| `SECOND_HAND_HSTS_INCLUDE_SUBDOMAINS` | `true` | Append `includeSubDomains` when HSTS is enabled |
+
+### Security Headers
+
+Every response carries a strict `Content-Security-Policy` (`default-src 'none'`, no
+`unsafe-inline`), plus `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+`Referrer-Policy: no-referrer`.
+
+`Strict-Transport-Security` is off by default because the app ships as a plain-HTTP
+service. Enable it via `SECOND_HAND_HSTS_MAX_AGE` once TLS is terminated in front of it.
+
+The CSP allows `fonts.googleapis.com` and `fonts.gstatic.com` because `style.css`
+imports Google Fonts. Remove those directives if the fonts are ever vendored locally.
+
+If you put a reverse proxy in front of this service, do **not** also set these headers
+there. nginx's `add_header` appends rather than replaces, and a browser given two
+`Content-Security-Policy` headers enforces the intersection of both — which silently
+breaks the page. Either leave the app to set them, or use `proxy_hide_header` first.
+
+### Dev Mode
+
+`SECOND_HAND_DEBUG=true` enables uvicorn auto-reload and the interactive API
+documentation at `/docs` and `/redoc`. Those routes do not exist otherwise: they are
+unauthenticated attack surface, and the Debian package binds `0.0.0.0`.
+
+Swagger UI and ReDoc load from a CDN and use inline scripts, so they cannot run under
+the strict policy. In dev mode only, the documentation paths get a relaxed CSP; the
+dashboard and API keep the strict one either way.
 
 ## Technology Stack
 

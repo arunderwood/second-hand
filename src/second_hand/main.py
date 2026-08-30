@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from second_hand import __version__
 from second_hand.components import dashboard_page
 from second_hand.components.base import error_page
 from second_hand.config import get_settings
+from second_hand.middleware import SecurityHeadersMiddleware, build_security_headers
 from second_hand.services.chrony import enrich_sources, fetch_chrony_data
 from second_hand.services.geoip import GeoIPService
 
@@ -43,11 +44,40 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Services shut down successfully")
 
 
+_settings = get_settings()
+
+# SECOND_HAND_DEBUG is the dev-mode switch. The interactive API documentation
+# is useful locally but is extra unauthenticated attack surface in production,
+# where the service binds 0.0.0.0, so those routes only exist in dev mode.
+_DOCS_PATHS = frozenset({"/docs", "/docs/oauth2-redirect", "/redoc"})
+
 app = FastAPI(
     title="second-hand",
     description="Chrony time statistics dashboard",
     version=__version__,
     lifespan=lifespan,
+    # Deliberately not passing `debug=_settings.debug`: Starlette's
+    # ServerErrorMiddleware checks debug before the installed 500 handler, so
+    # enabling it would replace `server_error_handler` below with a traceback
+    # page that carries no security headers.
+    docs_url="/docs" if _settings.debug else None,
+    redoc_url="/redoc" if _settings.debug else None,
+    openapi_url="/openapi.json" if _settings.debug else None,
+)
+
+# Security response headers on responses from routes, static files, and
+# handled exceptions. Note that `add_middleware` inserts at the front of the
+# stack, so anything added later would wrap this; keep it last if more
+# middleware is introduced.
+_SECURITY_HEADERS = build_security_headers(
+    hsts_max_age=_settings.hsts_max_age,
+    hsts_include_subdomains=_settings.hsts_include_subdomains,
+)
+app.add_middleware(
+    SecurityHeadersMiddleware,
+    hsts_max_age=_settings.hsts_max_age,
+    hsts_include_subdomains=_settings.hsts_include_subdomains,
+    docs_paths=_DOCS_PATHS if _settings.debug else frozenset(),
 )
 
 # Mount static files if directory exists
@@ -163,6 +193,22 @@ async def not_found_handler(request: Request, exc: Exception) -> HTMLResponse:
     return HTMLResponse(
         content=str(error_page(code=404, message="Page not found")),
         status_code=404,
+    )
+
+
+@app.exception_handler(Exception)
+async def server_error_handler(request: Request, exc: Exception) -> PlainTextResponse:
+    """Handle unhandled exceptions with security headers attached.
+
+    Starlette's ServerErrorMiddleware sits outside the user middleware stack,
+    so these responses never pass through SecurityHeadersMiddleware. Setting
+    the headers here keeps coverage complete. The exception is re-raised by
+    ServerErrorMiddleware afterwards, so it is still logged normally.
+    """
+    return PlainTextResponse(
+        "Internal Server Error",
+        status_code=500,
+        headers=_SECURITY_HEADERS,
     )
 
 
