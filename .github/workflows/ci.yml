@@ -18,17 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install uv
+      - name: Install uv and set up Python ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@v7
-
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+        with:
+          # Sets UV_PYTHON, which outranks the committed .python-version file.
+          # Without this the matrix is inert: `uv python install` only downloads
+          # an interpreter, so every leg resolved to .python-version (3.14).
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
       - name: Run type checking
-        run: uv run ty check src/
+        # Overrides [tool.ty.environment] python-version, which is pinned to
+        # 3.14 for local development.
+        run: uv run ty check src/ --python-version ${{ matrix.python-version }}
 
       - name: Run linting
         run: |
