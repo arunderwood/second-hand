@@ -81,16 +81,18 @@ jobs:
           # may arrive CRLF-terminated, and a line holding just CR is not empty
           # to the shell, so normalize line endings before splitting.
           printf '%s\n' "$RELEASE_BODY" | tr -d '\r' | while IFS= read -r line; do
-            # Leading markers, bold runs anywhere, then trailing space. dch
-            # re-wraps but does not interpret: whatever markdown survives here
-            # ships to users as literal punctuation in changelog.Debian.gz.
-            line=$(printf '%s\n' "$line" \
-                     | sed -e 's/^[[:space:]]*[#*-]*[[:space:]]*//' \
-                           -e 's/\*\*//g' \
-                           -e 's/[[:space:]]*$//')
+            line=$(printf '%s\n' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+            # A heading titles a section rather than describing a change, and the
+            # bullets beneath it already carry the content. Tested while the "#"
+            # is still there: stripped of markers, a heading reads as prose.
             case "$line" in
-              # A blank line would become an empty "  *" bullet, and the compare
-              # link is a bare URL with no prose a reader of the changelog can use.
+              '' | '#'*) continue ;;
+            esac
+            # dch re-wraps but does not interpret, so any markdown surviving here
+            # ships to users as literal punctuation in changelog.Debian.gz.
+            line=$(printf '%s\n' "$line" | sed 's/^[*-]*[[:space:]]*//; s/\*\*//g')
+            # The compare link is a bare URL with no prose a reader can use.
+            case "$line" in
               '' | 'Full Changelog:'*) continue ;;
             esac
             dch -a "$line"
