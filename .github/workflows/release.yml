@@ -21,6 +21,7 @@ permissions:
 jobs:
   build-deb:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
@@ -48,14 +49,30 @@ jobs:
             devscripts \
             lintian
 
+      # Runs on pull_request as well as on releases. This is the only step that
+      # regenerates the changelog entry and its trailer, and the lintian gate
+      # below is what rejects a malformed one; gating this on the release event
+      # would leave the rewrite unexercised until a tag is already published.
       - name: Update debian/changelog from release
-        if: github.event_name == 'release'
         working-directory: source
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
+          # dch builds the trailer from these. Without them it falls back to
+          # root@<container-id>, which lintian rejects as a bogus mail host.
+          # Keep in sync with the Maintainer field in debian/control.
+          DEBEMAIL: arunderwood@users.noreply.github.com
+          DEBFULLNAME: Arunderwood
         run: |
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
+          # No tag outside a release. Re-stamp the version the changelog already
+          # carries, with a +ci suffix so the entry is genuinely newer than the
+          # one it follows and so a PR-built .deb is never mistaken for a release.
+          if [ -z "$VERSION" ]; then
+            VERSION="$(dpkg-parsechangelog -S Version)"
+            VERSION="${VERSION%-*}+ci"
+            RELEASE_BODY="Changelog rewrite exercised by CI; not a release build."
+          fi
 
           # Create new version entry (-b forces version even if "lower" than current)
           dch -b --newversion "${VERSION}-1" --distribution stable ""
@@ -72,17 +89,12 @@ jobs:
       - name: Build .deb package
         working-directory: source
         run: |
-          # Strip 'v' prefix for SETUPTOOLS_SCM_PRETEND_VERSION
-          VERSION="${{ github.event.release.tag_name }}"
-          VERSION="${VERSION#v}"
-          # tag_name is empty on pull_request, where the changelog step above is
-          # skipped. Read the version debian/changelog already carries, minus its
-          # Debian revision, so the pex and the .deb agree on either path.
-          if [ -z "$VERSION" ]; then
-            VERSION="$(dpkg-parsechangelog -S Version)"
-            VERSION="${VERSION%-*}"
-          fi
-          export SETUPTOOLS_SCM_PRETEND_VERSION="$VERSION"
+          # The changelog step above has already stamped the version being built,
+          # so read it back instead of re-deriving it from the event payload.
+          # SETUPTOOLS_SCM_PRETEND_VERSION wants the upstream version alone, so
+          # drop the Debian revision and the pex and the .deb agree.
+          VERSION="$(dpkg-parsechangelog -S Version)"
+          export SETUPTOOLS_SCM_PRETEND_VERSION="${VERSION%-*}"
           dpkg-buildpackage -us -uc -b
 
       - name: Lint .deb package
@@ -154,6 +166,7 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
@@ -171,3 +184,31 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload --repo ${{ github.repository }} ${{ github.event.release.tag_name }} *.deb
+
+  # A release whose assets never uploaded still looks published: consumers that
+  # resolve "newest tag carrying a .deb" quietly stay on the previous version.
+  # This job runs whatever happened upstream so that outcome is a red check
+  # naming the missing architecture, not a silent no-op.
+  verify-release-assets:
+    needs: upload-release
+    if: ${{ always() && github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert the release carries a .deb for every architecture
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          assets="$(gh release view --repo "$GITHUB_REPOSITORY" "$TAG" \
+                      --json assets --jq '.assets[].name')"
+          echo "Assets on $TAG:"
+          echo "${assets:-  (none)}"
+
+          missing=0
+          for arch in amd64 arm64; do
+            if ! echo "$assets" | grep -q "_${arch}\.deb$"; then
+              echo "::error::$TAG has no ${arch} .deb attached."
+              missing=1
+            fi
+          done
+          exit "$missing"
