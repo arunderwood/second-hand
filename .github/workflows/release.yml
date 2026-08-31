@@ -77,13 +77,23 @@ jobs:
           # Create new version entry (-b forces version even if "lower" than current)
           dch -b --newversion "${VERSION}-1" --distribution stable ""
 
-          # Add each non-empty line from release notes as a changelog entry
-          echo "$RELEASE_BODY" | while IFS= read -r line; do
-            # Skip empty lines and markdown headers
-            line=$(echo "$line" | sed 's/^[#*-]* *//')  # Strip markdown bullets/headers
-            if [ -n "$line" ]; then
-              dch -a "$line"
-            fi
+          # One bullet per line of the release notes. The body is markdown and
+          # may arrive CRLF-terminated, and a line holding just CR is not empty
+          # to the shell, so normalize line endings before splitting.
+          printf '%s\n' "$RELEASE_BODY" | tr -d '\r' | while IFS= read -r line; do
+            # Leading markers, bold runs anywhere, then trailing space. dch
+            # re-wraps but does not interpret: whatever markdown survives here
+            # ships to users as literal punctuation in changelog.Debian.gz.
+            line=$(printf '%s\n' "$line" \
+                     | sed -e 's/^[[:space:]]*[#*-]*[[:space:]]*//' \
+                           -e 's/\*\*//g' \
+                           -e 's/[[:space:]]*$//')
+            case "$line" in
+              # A blank line would become an empty "  *" bullet, and the compare
+              # link is a bare URL with no prose a reader of the changelog can use.
+              '' | 'Full Changelog:'*) continue ;;
+            esac
+            dch -a "$line"
           done
 
       - name: Build .deb package
