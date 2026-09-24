@@ -50,13 +50,17 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y \
+          # Recommends add about 170 packages to the ~270 the build needs; nothing
+          # in the build or lintian uses them. libdistro-info-perl is the one
+          # recommend kept: without it dch cannot validate release names.
+          apt-get install -y --no-install-recommends \
             debhelper \
             python3-pip \
             build-essential \
             libffi-dev \
             git \
             devscripts \
+            libdistro-info-perl \
             lintian
 
       # Runs on pull_request as well as on releases. This is the only step that
