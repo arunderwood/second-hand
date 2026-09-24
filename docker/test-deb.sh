@@ -28,9 +28,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Waiting for systemd to initialize..."
-sleep 10
-
 echo "=== Validating pex installation ==="
 if docker exec "$CONTAINER_NAME" test -f /usr/lib/second-hand/second-hand.pex; then
     echo "✓ Pex file installed"
@@ -70,6 +67,23 @@ wait_for_service() {
     echo "✗ $service failed to start"
     docker exec "$CONTAINER_NAME" systemctl status "$service" --no-pager || true
     docker exec "$CONTAINER_NAME" journalctl -u "$service" --no-pager -n 50 || true
+    return 1
+}
+
+# Each request opens a fresh chronyd connection, so the dashboard reflects a
+# chrony restart as soon as the new daemon binds its socket.
+wait_for_dashboard() {
+    local pattern=$1
+    local max_attempts=15
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -qE "$pattern"; then
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
     return 1
 }
 
@@ -142,7 +156,12 @@ echo "✓ No connection errors in dashboard"
 echo "=== Testing graceful degradation when chronyd's command port is disabled ==="
 docker exec "$CONTAINER_NAME" sh -c 'echo "cmdport 0" >> /etc/chrony/chrony.conf'
 docker exec "$CONTAINER_NAME" systemctl restart chrony
-sleep 3
+if ! wait_for_dashboard "Unable to connect to chronyd"; then
+    echo "✗ Dashboard never showed the chronyd connection message"
+    docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ || true
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 30 || true
+    exit 1
+fi
 
 BROKEN_CODE=$(docker exec "$CONTAINER_NAME" curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
 if [ "$BROKEN_CODE" != "200" ]; then
@@ -170,8 +189,7 @@ echo "✓ No unhandled exceptions"
 
 docker exec "$CONTAINER_NAME" sh -c 'sed -i "/^cmdport 0$/d" /etc/chrony/chrony.conf'
 docker exec "$CONTAINER_NAME" systemctl restart chrony
-sleep 3
-if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -qE "Synchronized|Not Synchronized"; then
+if wait_for_dashboard "Synchronized|Not Synchronized"; then
     echo "✓ Dashboard recovers once the command port is restored"
 else
     echo "✗ Dashboard did not recover after restoring the command port"

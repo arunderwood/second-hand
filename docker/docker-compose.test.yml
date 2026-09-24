@@ -5,7 +5,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.test
     command: >
-      sh -c "chronyd && sleep 2 && uv run pytest tests/integration -v --tb=short"
+      sh -c "chronyd && timeout 10 sh -c 'until [ -S /run/chrony/chronyd.sock ]; do sleep 0.2; done' && uv run pytest tests/integration -v --tb=short"
     cap_add:
       - SYS_TIME
     privileged: true
