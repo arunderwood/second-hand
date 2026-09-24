@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+# A superseded PR run is safe to cancel. A release run is not: cancelling it
+# mid-upload leaves a published release missing assets.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-deb:
     strategy:
@@ -29,11 +35,13 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: source
           fetch-depth: 0  # Required for hatch-vcs to read git tags
 
@@ -57,13 +65,14 @@ jobs:
         working-directory: source
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
+          TAG: ${{ github.event.release.tag_name }}
           # dch builds the trailer from these. Without them it falls back to
           # root@<container-id>, which lintian rejects as a bogus mail host.
           # Keep in sync with the Maintainer field in debian/control.
           DEBEMAIL: arunderwood@users.noreply.github.com
           DEBFULLNAME: Arunderwood
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="$TAG"
           VERSION="${VERSION#v}"
           # No tag outside a release. Re-stamp the version the changelog already
           # carries, with a +ci suffix so the entry is genuinely newer than the
@@ -115,10 +124,10 @@ jobs:
           # only to uploads to the Debian archive.
           lintian --fail-on error,warning \
                   --suppress-tags initial-upload-closes-no-bugs,no-manual-page \
-                  *.deb
+                  ./*.deb
 
       - name: Upload .deb artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: deb-${{ matrix.arch }}
           path: "*.deb"
@@ -151,11 +160,14 @@ jobs:
             arch: arm64
             debian_version: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Download .deb artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: deb-${{ matrix.arch }}
           path: docker/
@@ -186,16 +198,18 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
     steps:
       - name: Download .deb artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: deb-${{ matrix.arch }}
 
       - name: Upload .deb to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload --repo ${{ github.repository }} ${{ github.event.release.tag_name }} *.deb
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload --repo "$GITHUB_REPOSITORY" "$TAG" ./*.deb
 
   # A release whose assets never uploaded still looks published: consumers that
   # resolve "newest tag carrying a .deb" quietly stay on the previous version.
@@ -205,6 +219,7 @@ jobs:
     needs: upload-release
     if: ${{ always() && github.event_name == 'release' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Assert the release carries a .deb for every architecture
         env:
