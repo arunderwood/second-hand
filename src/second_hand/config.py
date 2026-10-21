@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # UI Enhancement settings
     refresh_interval: int = 30  # Dashboard auto-refresh interval in seconds
 
+    # chronyd address: "host", "host:port", or a Unix socket path. The command
+    # port is chrony's read-only channel; the Unix socket is its privileged
+    # control channel.
+    chrony_address: str = "127.0.0.1:323"
+
     # Security headers
     # HSTS is only meaningful over TLS, so it is disabled by default. Set a
     # non-zero max-age (e.g. 31536000) when the app is served over HTTPS,

@@ -13,6 +13,7 @@ from pychrony import (
     TrackingStatus,
 )
 
+from second_hand.config import get_settings
 from second_hand.utils import country_code_to_flag
 
 
@@ -71,17 +72,23 @@ class ChronyData:
         return self.tracking is not None and self.tracking.is_synchronized()
 
 
-def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
+def fetch_chrony_data(address: str | None = None) -> ChronyData:
     """Fetch all chrony data from chronyd.
 
     Args:
-        socket_path: Optional custom socket path. Uses pychrony default if None.
+        address: chronyd address as "host", "host:port", or a Unix socket path.
+            Defaults to the configured SECOND_HAND_CHRONY_ADDRESS.
 
     Returns:
         ChronyData with all available data and any error message.
     """
+    # Always pass an explicit address; auto-detect can settle on an unreachable
+    # Unix socket without falling back to the command port.
+    if address is None:
+        address = get_settings().chrony_address
+
     try:
-        with ChronyConnection(socket_path) as conn:
+        with ChronyConnection(address) as conn:
             tracking = conn.get_tracking()
             sources = conn.get_sources()
             source_stats = conn.get_source_stats()
@@ -100,7 +107,10 @@ def fetch_chrony_data(socket_path: str | None = None) -> ChronyData:
             sources=[],
             source_stats=[],
             rtc=None,
-            error="Permission denied. Add your user to the chrony group.",
+            error=(
+                f"Permission denied connecting to chronyd at {address}. "
+                "Check that chronyd's command port is reachable."
+            ),
         )
 
     return ChronyData(

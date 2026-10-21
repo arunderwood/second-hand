@@ -29,26 +29,18 @@ dependencies = [
     "uvicorn>=0.46.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
-    "pychrony>=0.2.4",
+    "pychrony>=2.0.0,<3",
     "aiohttp>=3.13.4",
     "cachetools>=7.1.1",
 ]
-
-# pychrony is currently only available on Test PyPI
-# Remove this index once pychrony is published to main PyPI
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-explicit = true
-
-[tool.uv.sources]
-pychrony = { index = "testpypi" }
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=6.0.0",
-    "httpx>=0.28.0",
+    # Backs fastapi.testclient.TestClient. starlette.testclient imports httpx2
+    # and only falls back to httpx with a deprecation warning.
+    "httpx2>=2.12.0",
     "ty>=0.0.1a0",
     "ruff>=0.15.12",
 ]

@@ -3,6 +3,13 @@ set -e
 
 CONTAINER_NAME="second-hand-deb-test"
 
+# Ceiling for `systemd-analyze security`. --threshold takes the internal 0-100
+# scale, which is ten times the exposure level the tool prints: 20 here is the
+# "2.0" a reader sees. The hardened unit scores 1.5 on systemd 252-257, so this
+# leaves room for new checks in later systemd releases while still catching a
+# directive being dropped.
+SECURITY_THRESHOLD="${SECURITY_THRESHOLD:-20}"
+
 # Detect platform from image (allows testing across architectures)
 PLATFORM=$(docker inspect second-hand-deb-test:latest --format '{{.Architecture}}')
 echo "Detected image platform: $PLATFORM"
@@ -20,9 +27,6 @@ cleanup() {
     docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
-
-echo "Waiting for systemd to initialize..."
-sleep 10
 
 echo "=== Validating pex installation ==="
 if docker exec "$CONTAINER_NAME" test -f /usr/lib/second-hand/second-hand.pex; then
@@ -63,6 +67,23 @@ wait_for_service() {
     echo "✗ $service failed to start"
     docker exec "$CONTAINER_NAME" systemctl status "$service" --no-pager || true
     docker exec "$CONTAINER_NAME" journalctl -u "$service" --no-pager -n 50 || true
+    return 1
+}
+
+# Each request opens a fresh chronyd connection, so the dashboard reflects a
+# chrony restart as soon as the new daemon binds its socket.
+wait_for_dashboard() {
+    local pattern=$1
+    local max_attempts=15
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -qE "$pattern"; then
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
     return 1
 }
 
@@ -127,6 +148,66 @@ if echo "$DASHBOARD" | grep -qiE "connection error|permission denied|failed to c
     exit 1
 fi
 echo "✓ No connection errors in dashboard"
+
+# The dashboard reads chronyd's command port, so "cmdport 0" is the realistic way
+# an operator breaks it. The failure must stay a rendered message: pychrony raises
+# ChronyConnectionError here, which the service catches, and a regression to an
+# uncaught error would surface as a 500 rather than anything the positive tests see.
+echo "=== Testing graceful degradation when chronyd's command port is disabled ==="
+docker exec "$CONTAINER_NAME" sh -c 'echo "cmdport 0" >> /etc/chrony/chrony.conf'
+docker exec "$CONTAINER_NAME" systemctl restart chrony
+if ! wait_for_dashboard "Unable to connect to chronyd"; then
+    echo "✗ Dashboard never showed the chronyd connection message"
+    docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ || true
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 30 || true
+    exit 1
+fi
+
+BROKEN_CODE=$(docker exec "$CONTAINER_NAME" curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
+if [ "$BROKEN_CODE" != "200" ]; then
+    echo "✗ Dashboard returned HTTP $BROKEN_CODE with the command port disabled, expected 200"
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 30 || true
+    exit 1
+fi
+echo "✓ Dashboard still returns 200 with the command port disabled"
+
+BROKEN=$(docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/)
+if echo "$BROKEN" | grep -qi "Unable to connect to chronyd"; then
+    echo "✓ Dashboard explains the failure instead of erroring out"
+else
+    echo "✗ Dashboard did not show the chronyd connection message"
+    echo "$BROKEN"
+    exit 1
+fi
+
+if docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager | grep -qE "Traceback|ChronyDataError"; then
+    echo "✗ Unhandled exception while the command port was disabled"
+    docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager -n 40
+    exit 1
+fi
+echo "✓ No unhandled exceptions"
+
+docker exec "$CONTAINER_NAME" sh -c 'sed -i "/^cmdport 0$/d" /etc/chrony/chrony.conf'
+docker exec "$CONTAINER_NAME" systemctl restart chrony
+if wait_for_dashboard "Synchronized|Not Synchronized"; then
+    echo "✓ Dashboard recovers once the command port is restored"
+else
+    echo "✗ Dashboard did not recover after restoring the command port"
+    exit 1
+fi
+
+echo "=== Checking systemd hardening score ==="
+# systemd-analyze security needs the unit loaded, which is why this runs against
+# the live container rather than as a static lint on debian/second-hand.service.
+if docker exec "$CONTAINER_NAME" \
+    systemd-analyze security --threshold="$SECURITY_THRESHOLD" --no-pager second-hand.service; then
+    echo "✓ Hardening score within the ${SECURITY_THRESHOLD} ceiling"
+else
+    echo "✗ second-hand.service exposure exceeds the ${SECURITY_THRESHOLD} ceiling"
+    echo "  Restore the dropped hardening directive, or raise SECURITY_THRESHOLD"
+    echo "  in this script if the increase is a deliberate, understood tradeoff."
+    exit 1
+fi
 
 echo ""
 echo "✅ All .deb integration tests passed!"

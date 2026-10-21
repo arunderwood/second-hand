@@ -6,20 +6,9 @@ case "$1" in
         # Create system user if needed
         if ! getent passwd second-hand > /dev/null; then
             adduser --system --group --no-create-home \
+                    --home /nonexistent \
                     --shell /usr/sbin/nologin second-hand
         fi
-
-        # Add to chrony group for socket access (Debian 12+ uses _chrony)
-        if getent group _chrony > /dev/null; then
-            usermod -aG _chrony second-hand
-        elif getent group chrony > /dev/null; then
-            usermod -aG chrony second-hand
-        fi
-
-        # Enable and start service
-        systemctl daemon-reload
-        systemctl enable second-hand.service
-        systemctl start second-hand.service || true
         ;;
 esac
 

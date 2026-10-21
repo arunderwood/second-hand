@@ -14,7 +14,7 @@ if ! python3 -m pex --version &> /dev/null; then
     pip3 install --break-system-packages pex || pip3 install pex
 fi
 
-mkdir -p dist dist/pychrony-wheels
+mkdir -p dist
 
 # Detect architecture for platform string
 ARCH=$(uname -m)
@@ -33,30 +33,11 @@ echo "Building for architecture: $ARCH_SUFFIX"
 # and silently falls back to building it from source.
 MANYLINUX="manylinux2014"
 
-# Download pychrony wheels from Test PyPI for ALL target Python versions
-# pip download only grabs wheels for the current Python, so we need to
-# explicitly download for each target version
-for pyver in 3.11 3.12 3.13; do
-    echo "Downloading pychrony for Python $pyver..."
-    pip3 download --dest dist/pychrony-wheels \
-        --index-url https://test.pypi.org/simple/ \
-        --extra-index-url https://pypi.org/simple/ \
-        --no-deps \
-        --python-version "$pyver" \
-        --only-binary=:all: \
-        --platform "${MANYLINUX}_${ARCH_SUFFIX}" \
-        pychrony || echo "Warning: No wheel for Python $pyver"
-done
-
-echo "Downloaded pychrony wheels:"
-ls -la dist/pychrony-wheels/
-
 # Build multi-Python pex for current architecture
 # --resolve-local-platforms: Resolve for local Python (3.11 on Debian 12)
 # --platform: Add wheels for Python 3.12 and 3.13
 python3 -m pex . \
     --python-shebang='/usr/bin/env python3' \
-    --find-links=dist/pychrony-wheels \
     --interpreter-constraint='>=3.11,<4' \
     --pip-version=24.2 \
     --resolve-local-platforms \

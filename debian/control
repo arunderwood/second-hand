@@ -9,12 +9,11 @@ Rules-Requires-Root: no
 Build-Depends: debhelper-compat (= 13),
                python3 (>= 3.11),
                python3-pip
-Standards-Version: 4.6.2
+Standards-Version: 4.7.0
 
 Package: second-hand
 Architecture: any
-Pre-Depends: dpkg (>= 1.16.1)
-Depends: ${misc:Depends}, ${shlibs:Depends}, python3 (>= 3.11), chrony
+Depends: ${misc:Depends}, python3 (>= 3.11), chrony, adduser
 Provides: chrony-dashboard
 Description: Chrony time statistics dashboard
  A web dashboard for monitoring chrony NTP synchronization status.
