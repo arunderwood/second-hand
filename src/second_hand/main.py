@@ -2,7 +2,7 @@
 
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -26,7 +26,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifecycle for services.
 
     Initializes GeoIP service at startup and cleans up on shutdown.
