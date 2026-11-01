@@ -1,7 +1,9 @@
 """Configuration management for second-hand."""
 
+from functools import lru_cache
+
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -30,7 +32,7 @@ class Settings(BaseSettings):
     hsts_max_age: int = 0
     hsts_include_subdomains: bool = True
 
-    model_config = {"env_prefix": "SECOND_HAND_"}
+    model_config = SettingsConfigDict(env_prefix="SECOND_HAND_")
 
     @field_validator("port")
     @classmethod
@@ -49,6 +51,11 @@ class Settings(BaseSettings):
         return v
 
 
+@lru_cache
 def get_settings() -> Settings:
-    """Get application settings instance."""
+    """Get the process-wide settings, read from the environment once.
+
+    Tests that change ``SECOND_HAND_*`` variables must call
+    ``get_settings.cache_clear()`` for the change to be seen.
+    """
     return Settings()

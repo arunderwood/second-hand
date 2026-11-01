@@ -20,9 +20,7 @@ def mock_fetch_chrony_data() -> Generator[ChronyData, None, None]:
         rtc=None,
         error=None,
     )
-    with patch(
-        "second_hand.components.dashboard.fetch_chrony_data", return_value=mock_data
-    ):
+    with patch("second_hand.main.fetch_chrony_data", return_value=mock_data):
         yield mock_data
 
 

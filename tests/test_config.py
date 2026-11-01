@@ -71,3 +71,7 @@ class TestGetSettings:
         """get_settings should return a Settings instance."""
         settings = get_settings()
         assert isinstance(settings, Settings)
+
+    def test_is_cached(self) -> None:
+        """Settings are read from the environment once, not on every call."""
+        assert get_settings() is get_settings()
