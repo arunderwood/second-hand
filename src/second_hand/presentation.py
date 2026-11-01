@@ -39,7 +39,7 @@ class ModeDisplay(NamedTuple):
 _MODE_DISPLAY: dict[str, ModeDisplay] = {
     "CLIENT": ModeDisplay("Srv", "Server", "server"),
     "PEER": ModeDisplay("Peer", "Peer", "peer"),
-    "LOCAL": ModeDisplay("Ref", "Reference Clock", "refclock"),
+    "REFCLOCK": ModeDisplay("Ref", "Reference Clock", "refclock"),
 }
 _UNKNOWN_MODE = ModeDisplay("?", "Unknown", "server")
 

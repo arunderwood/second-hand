@@ -47,6 +47,18 @@ class Settings(BaseSettings):
             raise ValueError("Port must be between 1 and 65535")
         return v
 
+    @field_validator("refresh_interval")
+    @classmethod
+    def validate_refresh_interval(cls, v: int) -> int:
+        """Validate the refresh interval is between one second and one day.
+
+        dashboard.js passes it to setInterval, which treats any delay past
+        2**31 - 1 ms (about 24.8 days) as overflow and fires immediately.
+        """
+        if not 1 <= v <= 86400:
+            raise ValueError("Refresh interval must be between 1 and 86400 seconds")
+        return v
+
     @field_validator("hsts_max_age")
     @classmethod
     def validate_hsts_max_age(cls, v: int) -> int:

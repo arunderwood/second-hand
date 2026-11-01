@@ -174,7 +174,7 @@ def _format_mode_badge(mode_name: str) -> Element:
     """Create a color-coded mode badge element.
 
     Args:
-        mode_name: Mode enum name (e.g., "CLIENT", "PEER", "LOCAL").
+        mode_name: Mode enum name (e.g., "CLIENT", "PEER", "REFCLOCK").
 
     Returns:
         htpy Element with styled badge and tooltip.
