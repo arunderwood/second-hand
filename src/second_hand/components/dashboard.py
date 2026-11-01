@@ -2,7 +2,7 @@
 
 from htpy import Element, div, h1, p
 
-from second_hand.services.chrony import ChronyData, EnrichedSource, fetch_chrony_data
+from second_hand.services.chrony import ChronyData, EnrichedSource
 
 from .base import base_layout
 from .error import error_banner
@@ -14,25 +14,24 @@ from .tracking import tracking_section
 
 def dashboard_page(
     version: str,
-    chrony_data: ChronyData | None = None,
+    chrony_data: ChronyData,
     enriched_sources: list[EnrichedSource] | None = None,
+    refresh_interval: int = 30,
 ) -> Element:
     """Create the main dashboard page.
 
     Args:
         version: Application version string to display.
-        chrony_data: Optional pre-fetched chrony data. If None, fetches fresh data.
+        chrony_data: Chrony data to render.
         enriched_sources: Optional enriched sources with geo data.
+        refresh_interval: Seconds between dashboard.js data refreshes.
 
     Returns:
         Complete HTML dashboard page as an htpy Element.
     """
-    # Fetch chrony data if not provided
-    data = chrony_data if chrony_data is not None else fetch_chrony_data()
-
-    content = div(".dashboard")[
+    content = div(".dashboard", data_refresh_interval=str(refresh_interval))[
         _header(version),
-        _main_content(data, enriched_sources),
+        _main_content(chrony_data, enriched_sources),
         _footer(version),
     ]
     return base_layout("second-hand Dashboard", content)

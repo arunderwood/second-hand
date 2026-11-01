@@ -40,7 +40,7 @@ class TestTooltipLabel:
 
     def test_tooltip_label_generates_html(self) -> None:
         tooltip = TooltipContent(description="Test description")
-        result = str(tooltip_label("Test Label", tooltip))
+        result = str(tooltip_label("Test Label", tooltip, section="test"))
 
         assert "Test Label" in result
         assert "tooltip-trigger" in result
@@ -48,44 +48,44 @@ class TestTooltipLabel:
 
     def test_tooltip_label_includes_description(self) -> None:
         tooltip = TooltipContent(description="Test description")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert "Test description" in result
 
     def test_tooltip_label_includes_good_values(self) -> None:
         tooltip = TooltipContent(description="Desc", good_values="< 10 ms")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert "Good: &lt; 10 ms" in result  # HTML escaped
 
     def test_tooltip_label_includes_bad_values(self) -> None:
         tooltip = TooltipContent(description="Desc", bad_values="> 100 ms")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert "Bad: &gt; 100 ms" in result  # HTML escaped
 
     def test_tooltip_label_has_tabindex(self) -> None:
         tooltip = TooltipContent(description="Test")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert 'tabindex="0"' in result
 
     def test_tooltip_label_has_role_button(self) -> None:
         tooltip = TooltipContent(description="Test")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert 'role="button"' in result
 
     def test_tooltip_label_has_aria_describedby(self) -> None:
         tooltip = TooltipContent(description="Test")
-        result = str(tooltip_label("Test Label", tooltip))
+        result = str(tooltip_label("Test Label", tooltip, section="tracking"))
 
-        assert "aria-describedby" in result
-        assert "tip-test-label" in result  # Generated ID
+        assert 'aria-describedby="tip-tracking-test-label"' in result
+        assert 'id="tip-tracking-test-label"' in result
 
     def test_tooltip_label_has_sr_only_content(self) -> None:
         tooltip = TooltipContent(description="Test description")
-        result = str(tooltip_label("Test", tooltip))
+        result = str(tooltip_label("Test", tooltip, section="test"))
 
         assert 'class="sr-only"' in result
         assert 'role="tooltip"' in result

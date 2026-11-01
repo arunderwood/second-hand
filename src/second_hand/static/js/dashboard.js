@@ -7,13 +7,23 @@
  * Features:
  * - Poll countdown timers updating every second
  * - "Time since last receive" display updating every second
- * - Auto-refresh of data every 30 seconds
+ * - Auto-refresh of data at the server's SECOND_HAND_REFRESH_INTERVAL
  * - Progressive enhancement (works without JS)
+ *
+ * Display strings and row classes come from /api/sources already computed,
+ * so the server's formatting rules are the only ones.
  */
 
-// Configuration (matches server-side defaults)
-const REFRESH_INTERVAL_MS = 30000; // 30 seconds
+const DEFAULT_REFRESH_INTERVAL_S = 30;
 const UPDATE_INTERVAL_MS = 1000; // 1 second
+
+// Every class the API's row_class can carry, so the previous one is cleared.
+const SOURCE_STATE_CLASSES = [
+    'source-selected',
+    'source-falseticker',
+    'source-jittery',
+    'source-unreachable',
+];
 
 // State
 let refreshIntervalId = null;
@@ -28,13 +38,23 @@ function initDashboard() {
     // Start the 1-second update interval for countdowns and time-since
     updateIntervalId = setInterval(updateTimers, UPDATE_INTERVAL_MS);
 
-    // Start the 30-second data refresh interval
-    refreshIntervalId = setInterval(refreshData, REFRESH_INTERVAL_MS);
+    refreshIntervalId = setInterval(refreshData, refreshIntervalSeconds() * 1000);
 
     // Run initial update
     updateTimers();
 
     console.log('Dashboard initialized with real-time updates');
+}
+
+/**
+ * Read the refresh interval the server rendered onto the page.
+ *
+ * @returns {number} Seconds between data refreshes
+ */
+function refreshIntervalSeconds() {
+    const dashboard = document.querySelector('.dashboard');
+    const seconds = parseInt(dashboard?.dataset.refreshInterval, 10);
+    return seconds > 0 ? seconds : DEFAULT_REFRESH_INTERVAL_S;
 }
 
 /**
@@ -55,10 +75,13 @@ function updateCountdowns() {
     const countdowns = document.querySelectorAll('.poll[data-poll-interval]');
 
     countdowns.forEach(cell => {
-        const interval = parseInt(cell.dataset.pollInterval, 10);
+        const interval = parseFloat(cell.dataset.pollInterval);
         const lastRx = parseInt(cell.dataset.lastRxTime, 10);
 
         if (isNaN(interval) || isNaN(lastRx)) return;
+        // Sub-second polls cycle faster than this one-second tick, so the
+        // server-rendered interval stays as the label.
+        if (interval < 1) return;
 
         // Calculate time since last receive
         const elapsed = now - lastRx;
@@ -121,7 +144,7 @@ function formatDuration(seconds) {
 
 /**
  * Refresh data from the server API.
- * Called every 30 seconds.
+ * Called every refresh interval.
  */
 async function refreshData() {
     try {
@@ -150,17 +173,35 @@ async function refreshData() {
 /**
  * Update the dashboard with fresh data from the API.
  *
+ * Rows are matched to sources by address. The table itself is rendered by
+ * the server, so when the set of sources changes (one added or removed, or
+ * chronyd coming back after the page loaded without it) only a reload can
+ * redraw it. Addresses are not guaranteed unique (two refclocks can share a
+ * refid), so rows sharing one are paired with sources in table order.
+ *
  * @param {Object} data - API response data
  */
 function updateDashboard(data) {
-    if (!data.sources || !Array.isArray(data.sources)) return;
+    if (!Array.isArray(data.sources)) return;
 
-    const rows = document.querySelectorAll('.source-row');
+    const rowElements = [...document.querySelectorAll('.source-row[data-address]')];
+    const addressKey = addresses => [...addresses].sort().join('\n');
+    const sameSources = addressKey(rowElements.map(row => row.dataset.address))
+        === addressKey(data.sources.map(source => source.address));
+    if (!sameSources) {
+        window.location.reload();
+        return;
+    }
 
-    data.sources.forEach((source, index) => {
-        if (index >= rows.length) return;
+    const rows = new Map();
+    rowElements.forEach(row => {
+        const address = row.dataset.address;
+        if (!rows.has(address)) rows.set(address, []);
+        rows.get(address).push(row);
+    });
 
-        const row = rows[index];
+    data.sources.forEach(source => {
+        const row = rows.get(source.address).shift();
 
         // Update data attributes for countdowns
         const pollCell = row.querySelector('.poll');
@@ -175,63 +216,38 @@ function updateDashboard(data) {
             lastRxCell.dataset.timestamp = source.last_rx_timestamp;
         }
 
-        // Update state class
-        row.classList.remove('source-selected', 'source-falseticker', 'source-jittery', 'source-unreachable');
-        if (source.is_selected) {
-            row.classList.add('source-selected');
-        } else if (source.state === 'Falseticker') {
-            row.classList.add('source-falseticker');
-        } else if (source.state === 'Jittery') {
-            row.classList.add('source-jittery');
-        } else if (source.reachability === 0) {
-            row.classList.add('source-unreachable');
+        row.classList.remove(...SOURCE_STATE_CLASSES);
+        if (source.row_class) {
+            row.classList.add(source.row_class);
         }
 
-        // Update measurement values
+        const state = row.querySelector('.state');
+        if (state) {
+            state.textContent = source.state;
+        }
+
         const latestMeas = row.querySelector('.latest-meas span');
         if (latestMeas) {
-            latestMeas.textContent = formatOffset(source.latest_meas);
+            latestMeas.textContent = source.latest_meas_display;
             latestMeas.className = source.latest_meas >= 0 ? 'offset-positive' : 'offset-negative';
         }
 
         const measErr = row.querySelector('.meas-err');
         if (measErr) {
-            measErr.textContent = formatOffset(source.latest_meas_err);
+            measErr.textContent = source.latest_meas_err_display;
         }
 
-        // Update reachability visual
-        updateReachabilityVisual(row, source.reachability);
+        updateReachabilityVisual(row, source.reachability_bits);
     });
-}
-
-/**
- * Format an offset value for display.
- *
- * @param {number} seconds - Offset in seconds
- * @returns {string} Formatted offset with appropriate unit
- */
-function formatOffset(seconds) {
-    const absVal = Math.abs(seconds);
-    const sign = seconds >= 0 ? '+' : '-';
-
-    if (absVal >= 1) {
-        return `${sign}${absVal.toFixed(3)} s`;
-    } else if (absVal >= 0.001) {
-        return `${sign}${(absVal * 1000).toFixed(3)} ms`;
-    } else if (absVal >= 0.000001) {
-        return `${sign}${(absVal * 1000000).toFixed(1)} \u00b5s`;
-    } else {
-        return `${sign}${Math.round(absVal * 1000000000)} ns`;
-    }
 }
 
 /**
  * Update the reachability visual indicator.
  *
  * @param {Element} row - Table row element
- * @param {number} reachability - Reachability register value (0-255)
+ * @param {boolean[]} bits - Poll outcomes from the API, newest first
  */
-function updateReachabilityVisual(row, reachability) {
+function updateReachabilityVisual(row, bits) {
     const reachCell = row.querySelector('.reach');
     if (!reachCell) return;
 
@@ -241,13 +257,12 @@ function updateReachabilityVisual(row, reachability) {
     // Clear existing bits
     visual.innerHTML = '';
 
-    // Add new bit indicators (MSB to LSB for left-to-right display)
-    for (let i = 7; i >= 0; i--) {
-        const bit = (reachability >> i) & 1;
+    // Oldest on the left, matching the server-rendered table.
+    [...bits].reverse().forEach(bit => {
         const span = document.createElement('span');
         span.className = `reach-bit ${bit ? 'success' : 'failure'}`;
         visual.appendChild(span);
-    }
+    });
 }
 
 /**

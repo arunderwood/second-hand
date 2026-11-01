@@ -7,6 +7,12 @@ from pychrony import Source
 
 from second_hand.components.base import tooltip_label
 from second_hand.components.tooltips import SOURCE_TOOLTIPS
+from second_hand.presentation import (
+    mode_display,
+    reachability_percent,
+    source_state_class,
+    state_label,
+)
 from second_hand.services.chrony import EnrichedSource
 from second_hand.utils import (
     format_duration,
@@ -69,7 +75,7 @@ def _header_with_tooltip(text: str, tooltip_key: str) -> Element | str:
     """
     tooltip_content = SOURCE_TOOLTIPS.get(tooltip_key)
     if tooltip_content:
-        return tooltip_label(text, tooltip_content)
+        return tooltip_label(text, tooltip_content, section="sources")
     return text
 
 
@@ -87,18 +93,18 @@ def _source_row(source: Source | EnrichedSource) -> Element:
 
     Returns:
         htpy Element for the table row with data attributes for JS enhancement.
+        ``data-address`` is the key dashboard.js matches API updates on.
     """
     # Extract the raw Source if we have an EnrichedSource
     raw_source = source.source if isinstance(source, EnrichedSource) else source
 
-    # Determine row class based on state
-    row_class = _get_row_class(raw_source)
+    state_class = source_state_class(raw_source)
+    row_class = ".source-row" + (f".{state_class}" if state_class else "")
 
     # Format mode as badge
     mode_badge = _format_mode_badge(raw_source.mode.name)
 
-    # Format state name (capitalize first letter)
-    state_name = raw_source.state.name.replace("_", " ").title()
+    state_name = state_label(raw_source.state.name)
 
     # Format poll as 2^poll seconds
     poll_seconds = 2**raw_source.poll
@@ -151,7 +157,7 @@ def _source_row(source: Source | EnrichedSource) -> Element:
     else:
         address_cell = td(".address")[raw_source.address]
 
-    return tr(row_class)[
+    return tr(row_class, data_address=raw_source.address)[
         td(".mode")[mode_badge],
         address_cell,
         td(".state")[state_name],
@@ -164,54 +170,20 @@ def _source_row(source: Source | EnrichedSource) -> Element:
     ]
 
 
-def _get_row_class(source: Source) -> str:
-    """Get CSS class for source row based on state.
-
-    Args:
-        source: Source object from pychrony.
-
-    Returns:
-        CSS class string for the row.
-    """
-    state_name = source.state.name
-
-    # Map state names to CSS classes
-    if state_name == "SELECTED":
-        return ".source-row.source-selected"
-    if state_name == "FALSETICKER":
-        return ".source-row.source-falseticker"
-    if state_name == "JITTERY":
-        return ".source-row.source-jittery"
-    if not source.is_reachable():
-        return ".source-row.source-unreachable"
-
-    return ".source-row"
-
-
 def _format_mode_badge(mode_name: str) -> Element:
     """Create a color-coded mode badge element.
 
     Args:
-        mode_name: Mode enum name (e.g., "CLIENT", "PEER", "LOCAL").
+        mode_name: Mode enum name (e.g., "CLIENT", "PEER", "REFCLOCK").
 
     Returns:
         htpy Element with styled badge and tooltip.
     """
-    # Map mode names to display info
-    mode_info = {
-        "CLIENT": ("Srv", "Server", "server"),
-        "PEER": ("Peer", "Peer", "peer"),
-        "LOCAL": ("Ref", "Reference Clock", "refclock"),
-    }
-
-    short_name, full_name, css_class = mode_info.get(
-        mode_name, ("?", "Unknown", "server")
-    )
-
+    mode = mode_display(mode_name)
     return span(
-        f".mode-badge.mode-badge--{css_class}",
-        title=full_name,
-    )[short_name]
+        f".mode-badge.mode-badge--{mode.css_class}",
+        title=mode.full,
+    )[mode.short]
 
 
 def _format_reach_visual(reachability: int) -> Element:
@@ -226,10 +198,7 @@ def _format_reach_visual(reachability: int) -> Element:
     bits = format_reachability_visual(reachability)
     octal = format_reachability(reachability)
 
-    # Calculate reachability percentage
-    success_count = sum(1 for bit in bits if bit)
-    percentage = int(success_count / 8 * 100)
-    tooltip_text = f"Reachability: {octal} ({percentage}%)"
+    tooltip_text = f"Reachability: {octal} ({reachability_percent(reachability)}%)"
 
     # Create visual bit indicator
     bit_elements = [

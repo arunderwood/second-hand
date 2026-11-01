@@ -63,7 +63,9 @@ def _rtc_stat_with_tooltip(title: str, value: str, tooltip_key: str) -> Element:
     """
     tooltip_content = RTC_TOOLTIPS.get(tooltip_key)
     title_element: Element | str = (
-        tooltip_label(title, tooltip_content) if tooltip_content else title
+        tooltip_label(title, tooltip_content, section="rtc")
+        if tooltip_content
+        else title
     )
 
     return div(".rtc-stat")[

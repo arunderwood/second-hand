@@ -1,10 +1,14 @@
 """Unit tests for sources table component."""
 
+import re
+
 import pytest
 from pychrony import Source, SourceState
 from pychrony.testing import make_source
 
 from second_hand.components.sources import sources_table
+from second_hand.main import STATIC_DIR
+from second_hand.presentation import SOURCE_STATE_CLASSES
 
 
 @pytest.fixture
@@ -100,3 +104,18 @@ class TestSourcesTable:
         # Should have proper case formatting
         assert "Selected" in result
         assert "Unselected" in result
+
+
+class TestRowAddressKey:
+    def test_rows_carry_their_address(self, mock_sources: list[Source]) -> None:
+        """dashboard.js matches API updates to rows by this attribute."""
+        result = str(sources_table(mock_sources))
+        assert 'data-address="192.168.1.1"' in result
+        assert 'data-address="10.0.0.1"' in result
+
+    def test_js_clears_every_state_class(self) -> None:
+        """dashboard.js must know every class the server can put on a row."""
+        js = (STATIC_DIR / "js" / "dashboard.js").read_text()
+        block = re.search(r"SOURCE_STATE_CLASSES = \[(.*?)\]", js, re.DOTALL)
+        assert block is not None
+        assert tuple(re.findall(r"'([^']+)'", block.group(1))) == SOURCE_STATE_CLASSES
