@@ -46,8 +46,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[AppState]:
         yield {"geoip": GeoIPService(client)}
 
 
-def get_geoip(request: Request) -> GeoIPService:
-    """Dependency: the application's GeoIP service."""
+async def get_geoip(request: Request) -> GeoIPService:
+    """Dependency: the application's GeoIP service.
+
+    Async so FastAPI resolves it on the event loop rather than dispatching a
+    plain attribute read to its thread pool.
+    """
     return request.state.geoip
 
 

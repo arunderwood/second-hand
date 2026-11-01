@@ -174,13 +174,41 @@ class TestFailureHandling:
         assert result.is_private is False
         assert service.failure_count == 1
 
+    def test_slow_response_is_cut_off(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The timeout bounds the whole request, not each phase of it."""
+        monkeypatch.setattr("second_hand.services.geoip.REQUEST_TIMEOUT_SECONDS", 0.01)
+
+        async def handler(_request: httpx2.Request) -> httpx2.Response:
+            await asyncio.sleep(1)
+            return httpx2.Response(200, json={"success": True})
+
+        client = httpx2.AsyncClient(transport=httpx2.MockTransport(handler))
+        service = GeoIPService(client)
+        started = time.monotonic()
+        result = lookup(service, "8.8.8.8")
+
+        assert time.monotonic() - started < 0.5
+        assert result.country_code is None
+        assert service.failure_count == 1
+
 
 class TestPrivateAddresses:
     """Private and unparseable addresses never reach the network."""
 
     @pytest.mark.parametrize(
         "ip",
-        ["192.168.1.1", "10.0.0.1", "127.0.0.1", "169.254.1.1", "::1", "fd00::1"],
+        [
+            "192.168.1.1",
+            "10.0.0.1",
+            "127.0.0.1",
+            "169.254.1.1",
+            "::1",
+            "fd00::1",
+            "100.64.0.1",
+            "100.100.100.100",
+            "224.0.0.1",
+            "240.0.0.1",
+        ],
     )
     def test_private_ip_skips_request(self, ip: str) -> None:
         api = success()
