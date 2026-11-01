@@ -163,11 +163,13 @@ class GeoIPService:
         Returns:
             The parsed result, or None if the lookup failed for any reason.
         """
+        # httpx2's own timeout limits each phase (connect, read, ...) on its
+        # own; this caps the whole request so a slow upstream cannot hold the
+        # page render past it.
         try:
-            response = await self._client.get(
-                GEOIP_API_URL.format(ip=ip), timeout=REQUEST_TIMEOUT_SECONDS
-            )
-        except httpx2.TimeoutException:
+            async with asyncio.timeout(REQUEST_TIMEOUT_SECONDS):
+                response = await self._client.get(GEOIP_API_URL.format(ip=ip))
+        except (TimeoutError, httpx2.TimeoutException):
             logger.debug("GeoIP lookup timed out for %s", ip)
             return None
         # Flags are decoration: no failure here may take the dashboard down.
@@ -218,21 +220,21 @@ class GeoIPService:
     def _is_private_ip(self, ip_str: str) -> bool:
         """Check if an IP address is private/local/reserved.
 
+        ``is_global`` also rules out shared address space (100.64.0.0/10,
+        used by carrier-grade NAT and Tailscale), which ``is_private`` does
+        not cover and ipwho.is can only answer with "Reserved range".
+        Reserved and multicast ranges are checked separately because some of
+        them still count as global.
+
         Args:
             ip_str: IP address string.
 
         Returns:
-            True if the IP is private, loopback, link-local, or reserved.
+            True if the IP is not globally routable, reserved, or multicast.
         """
         try:
             ip = ipaddress.ip_address(ip_str)
-            return (
-                ip.is_private
-                or ip.is_loopback
-                or ip.is_link_local
-                or ip.is_reserved
-                or ip.is_multicast
-            )
+            return not ip.is_global or ip.is_reserved or ip.is_multicast
         except ValueError:
             # Invalid IP treated as non-geolocatable
             return True

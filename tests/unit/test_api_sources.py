@@ -10,6 +10,7 @@ from pychrony import SourceMode, SourceState
 from pychrony.testing import make_source, make_tracking
 
 from second_hand.main import app
+from second_hand.presentation import mode_display
 from second_hand.services.chrony import ChronyData
 
 # Private addresses keep the GeoIP service off the network.
@@ -81,6 +82,26 @@ class TestSourcesPayload:
         # 0b0111_1111: the seven most recent polls succeeded, the oldest failed.
         assert selected["reachability_bits"] == [True] * 7 + [False]
         assert selected["reachability_percent"] == 87
+
+    def test_sub_second_poll(self) -> None:
+        """chrony allows negative poll exponents, so poll is not always whole."""
+        fast = chrony_data(sources=[make_source(address="192.168.1.1", poll=-2)])
+        with (
+            TestClient(app) as client,
+            patch("second_hand.main.fetch_chrony_data", return_value=fast),
+        ):
+            response = client.get("/api/sources")
+
+        assert response.status_code == 200
+        assert response.json()["sources"][0]["poll"] == 0.25
+
+    def test_every_pychrony_mode_has_a_display(self) -> None:
+        for mode in SourceMode:
+            assert mode_display(mode.name).short != "?", mode.name
+
+    def test_last_rx_is_whole_seconds(self, client: TestClient) -> None:
+        source = client.get("/api/sources").json()["sources"][0]
+        assert isinstance(source["last_rx"], int)
 
     def test_envelope(self, client: TestClient) -> None:
         body = client.get("/api/sources").json()
