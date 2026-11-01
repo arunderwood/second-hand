@@ -13,7 +13,9 @@ from second_hand.main import app
 from second_hand.presentation import mode_display
 from second_hand.services.chrony import ChronyData
 
-# Private addresses keep the GeoIP service off the network.
+# Private addresses keep the GeoIP service off the network. They do not keep
+# reverse DNS off it, which resolves private addresses on purpose; the autouse
+# ``offline_rdns`` fixture in tests/conftest.py is what does that.
 SOURCES = [
     make_source(
         address="192.168.1.1",
@@ -75,6 +77,14 @@ class TestSourcesPayload:
 
         assert unselected["mode"] == "peer"
         assert unselected["row_class"] == "source-unreachable"
+
+    def test_unresolved_sources_fall_back_to_the_address(
+        self, client: TestClient
+    ) -> None:
+        """hostname is null, and display_name is what the cell should show."""
+        for source in client.get("/api/sources").json()["sources"]:
+            assert source["hostname"] is None
+            assert source["display_name"] == source["address"]
 
     def test_reachability_bits_are_newest_first(self, client: TestClient) -> None:
         selected = client.get("/api/sources").json()["sources"][0]

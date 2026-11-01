@@ -34,6 +34,10 @@ dependencies = [
     # Also backs fastapi.testclient.TestClient: starlette.testclient imports
     # httpx2 and only falls back to httpx with a deprecation warning.
     "httpx2>=2.15.0",
+    # Pure Python, and every dependency of it is an extra: the pex bundles one
+    # py3-none-any wheel for all five interpreters build-pex.sh targets. A
+    # resolver with a C extension cannot be built that way.
+    "dnspython>=2.9.1,<3",
 ]
 
 [dependency-groups]

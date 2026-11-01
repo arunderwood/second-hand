@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, TypedDict
 
+import dns.asyncresolver
+import dns.resolver
 import httpx2
 import uvicorn
 from fastapi import Depends, FastAPI, Request
@@ -22,6 +24,7 @@ from second_hand.middleware import SecurityHeadersMiddleware, build_security_hea
 from second_hand.schemas import ApiError, SourcesResponse
 from second_hand.services.chrony import enrich_sources, fetch_chrony_data
 from second_hand.services.geoip import GeoIPService
+from second_hand.services.rdns import LOOKUP_TIMEOUT_SECONDS, ReverseDNSService
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,24 @@ class AppState(TypedDict):
     """Per-application services, exposed to requests as ``request.state``."""
 
     geoip: GeoIPService
+    rdns: ReverseDNSService
+
+
+def _build_resolver() -> dns.asyncresolver.Resolver | None:
+    """Configure a resolver from the system's resolv.conf.
+
+    Returns:
+        The resolver, or None if the host has no usable resolver
+        configuration. A dashboard that shows addresses is worth far more than
+        one that refuses to start, so this never raises.
+    """
+    try:
+        resolver = dns.asyncresolver.Resolver()
+    except dns.resolver.NoResolverConfiguration as e:
+        logger.warning("Source hostnames unavailable, no usable resolv.conf: %s", e)
+        return None
+    resolver.lifetime = LOOKUP_TIMEOUT_SECONDS
+    return resolver
 
 
 @asynccontextmanager
@@ -40,11 +61,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[AppState]:
     """Own the services that live as long as the application.
 
     The HTTP client is shared by every GeoIP lookup so connections to ipwho.is
-    are pooled, and it is closed on shutdown.
+    are pooled, and it is closed on shutdown. The resolver holds no
+    connections of its own and needs no teardown.
     """
+    resolver = _build_resolver()
     async with httpx2.AsyncClient() as client:
         logger.info("GeoIP service (ipwho.is) ready")
-        yield {"geoip": GeoIPService(client)}
+        if resolver is not None:
+            nameservers = ", ".join(str(ns) for ns in resolver.nameservers)
+            logger.info("Reverse DNS service ready (%s)", nameservers)
+        yield {
+            "geoip": GeoIPService(client),
+            "rdns": ReverseDNSService(resolver),
+        }
 
 
 async def get_geoip(request: Request) -> GeoIPService:
@@ -56,7 +85,13 @@ async def get_geoip(request: Request) -> GeoIPService:
     return request.state.geoip
 
 
+async def get_rdns(request: Request) -> ReverseDNSService:
+    """Dependency: the application's reverse DNS service."""
+    return request.state.rdns
+
+
 GeoIP = Annotated[GeoIPService, Depends(get_geoip)]
+ReverseDNS = Annotated[ReverseDNSService, Depends(get_rdns)]
 
 
 _settings = get_settings()
@@ -103,14 +138,14 @@ app.include_router(fonts_router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(geoip: GeoIP) -> str:
+async def dashboard(geoip: GeoIP, rdns: ReverseDNS) -> str:
     """Render the main dashboard page with enriched source data."""
     chrony_data = await asyncio.to_thread(fetch_chrony_data)
 
-    # Enrich sources with geo data if we have sources
+    # Enrich sources with geo and hostname data if we have sources
     enriched_sources = None
     if chrony_data.sources:
-        enriched_sources = await enrich_sources(chrony_data.sources, geoip)
+        enriched_sources = await enrich_sources(chrony_data.sources, geoip, rdns)
 
     return str(
         dashboard_page(
@@ -135,11 +170,11 @@ async def health_check() -> dict[str, str]:
     response_model=SourcesResponse,
     responses={503: {"model": ApiError, "description": "chronyd is unreachable"}},
 )
-async def api_sources(geoip: GeoIP) -> SourcesResponse | JSONResponse:
+async def api_sources(geoip: GeoIP, rdns: ReverseDNS) -> SourcesResponse | JSONResponse:
     """Get enriched NTP sources as JSON for real-time updates.
 
     Returns all NTP sources with enriched display data including
-    geolocation information.
+    geolocation information and resolved hostnames.
 
     Returns:
         JSON response with sources, timestamp, sync status, and refresh interval.
@@ -156,7 +191,7 @@ async def api_sources(geoip: GeoIP) -> SourcesResponse | JSONResponse:
         )
 
     return SourcesResponse.build(
-        await enrich_sources(chrony_data.sources, geoip),
+        await enrich_sources(chrony_data.sources, geoip, rdns),
         is_synchronized=chrony_data.is_synchronized,
         refresh_interval=get_settings().refresh_interval,
     )

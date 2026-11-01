@@ -9,6 +9,7 @@ from pychrony.testing import make_source
 from second_hand.components.sources import sources_table
 from second_hand.main import STATIC_DIR
 from second_hand.presentation import SOURCE_STATE_CLASSES
+from second_hand.services.chrony import EnrichedSource
 
 
 @pytest.fixture
@@ -119,3 +120,56 @@ class TestRowAddressKey:
         block = re.search(r"SOURCE_STATE_CLASSES = \[(.*?)\]", js, re.DOTALL)
         assert block is not None
         assert tuple(re.findall(r"'([^']+)'", block.group(1))) == SOURCE_STATE_CLASSES
+
+
+class TestEnrichedAddressCell:
+    """The address cell when sources carry hostnames and country data."""
+
+    @staticmethod
+    def _cell(hostname: str | None, country_code: str | None = None) -> str:
+        source = EnrichedSource(
+            source=make_source(address="8.8.8.8"),
+            country_code=country_code,
+            hostname=hostname,
+        )
+        return str(sources_table([source]))
+
+    def test_resolved_name_carries_the_address_as_its_title(self) -> None:
+        """Hovering the name is how the address stays reachable."""
+        assert (
+            '<span class="source-name" title="8.8.8.8">dns.google</span>'
+            in self._cell("dns.google")
+        )
+
+    def test_unresolved_cell_shows_the_address_without_a_title(self) -> None:
+        """No title means no hover affordance, which the CSS keys off."""
+        result = self._cell(None)
+
+        assert '<span class="source-name">8.8.8.8</span>' in result
+        assert "title=" not in result.split('class="source-name"')[1][:40]
+
+    def test_row_keys_on_the_address_not_the_name(self) -> None:
+        """dashboard.js reloads the page if data-address stops matching."""
+        result = self._cell("dns.google")
+
+        assert 'data-address="8.8.8.8"' in result
+        assert 'data-address="dns.google"' not in result
+
+    def test_flag_and_name_both_render(self) -> None:
+        result = self._cell("dns.google", country_code="DE")
+
+        assert 'class="country-flag"' in result
+        assert 'class="source-name" title="8.8.8.8"' in result
+
+    def test_name_is_escaped(self) -> None:
+        """htpy escapes it, but the name is third-party data either way."""
+        result = self._cell("a&b")
+
+        assert "a&amp;b" in result
+        assert "a&b" not in result
+
+    def test_plain_source_still_renders_a_name_span(self) -> None:
+        """dashboard.js looks for the span on every row, enriched or not."""
+        result = str(sources_table([make_source(address="8.8.8.8")]))
+
+        assert '<span class="source-name">8.8.8.8</span>' in result

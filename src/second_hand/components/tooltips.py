@@ -144,7 +144,12 @@ SOURCE_TOOLTIPS: dict[str, TooltipContent] = {
         ),
     ),
     "address": TooltipContent(
-        description="Network address or reference ID of the time source.",
+        description=(
+            "Name from the source's PTR record, or its network address or "
+            "reference ID when there is none. Hover a name to see the "
+            "address it resolved from. A PTR record is set by whoever holds "
+            "the address, so the name is its own claim and is not verified."
+        ),
     ),
     "stratum": TooltipContent(
         description=(

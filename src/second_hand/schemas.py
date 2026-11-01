@@ -22,6 +22,9 @@ class SourceOut(BaseModel):
 
     address: str
     display_name: str
+    # None when the address has no PTR record. display_name already falls back
+    # to the address; this is what tells the client whether it did.
+    hostname: str | None
     country_code: str | None
     country_name: str | None
     country_flag: str
@@ -52,6 +55,7 @@ class SourceOut(BaseModel):
         return cls(
             address=source.address,
             display_name=es.display_name,
+            hostname=es.hostname,
             country_code=es.country_code,
             country_name=es.country_name,
             country_flag=es.country_flag,

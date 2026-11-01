@@ -625,7 +625,8 @@ tr.source-jittery:hover {
   position: relative;
 }
 
-.country-flag[title]:hover::after {
+.country-flag[title]:hover::after,
+.source-name[title]:hover::after {
   content: attr(title);
   position: absolute;
   bottom: 100%;
@@ -644,16 +645,15 @@ tr.source-jittery:hover {
 }
 
 /* =============================================================================
-   HOSTNAME DISPLAY
+   SOURCE NAMES
    ============================================================================= */
 
-.source-hostname {
-  color: var(--color-text);
-}
-
-.source-ip {
-  color: var(--color-text-muted);
-  font-size: 0.9em;
+/* Holds the resolved hostname, or the address when the source has no PTR
+   record. Only a resolved name carries a title, so only it gets the hover
+   affordance and the tooltip rule above. */
+.source-name[title] {
+  cursor: help;
+  position: relative;
 }
 
 /* =============================================================================

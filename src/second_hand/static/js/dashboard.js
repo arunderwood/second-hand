@@ -216,6 +216,19 @@ function updateDashboard(data) {
             lastRxCell.dataset.timestamp = source.last_rx_timestamp;
         }
 
+        // A lookup that lost the race with the first paint lands here instead
+        // of waiting for the next full page load. textContent, not innerHTML:
+        // a PTR record is set by whoever holds the address.
+        const name = row.querySelector('.address .source-name');
+        if (name) {
+            name.textContent = source.display_name;
+            if (source.hostname) {
+                name.title = source.address;
+            } else {
+                name.removeAttribute('title');
+            }
+        }
+
         row.classList.remove(...SOURCE_STATE_CLASSES);
         if (source.row_class) {
             row.classList.add(source.row_class);
