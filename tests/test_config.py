@@ -63,6 +63,21 @@ class TestSettings:
             settings = Settings()
             assert settings.port == 65535
 
+    @pytest.mark.parametrize("value", ["0", "86401"])
+    def test_invalid_refresh_interval(self, value: str) -> None:
+        """Refresh intervals setInterval cannot honor should be rejected."""
+        with (
+            patch.dict(os.environ, {"SECOND_HAND_REFRESH_INTERVAL": value}),
+            pytest.raises(ValidationError),
+        ):
+            Settings()
+
+    def test_valid_refresh_interval_boundaries(self) -> None:
+        """Refresh intervals of 1 second and 1 day should be valid."""
+        for value in (1, 86400):
+            with patch.dict(os.environ, {"SECOND_HAND_REFRESH_INTERVAL": str(value)}):
+                assert Settings().refresh_interval == value
+
 
 class TestGetSettings:
     """Tests for get_settings function."""
