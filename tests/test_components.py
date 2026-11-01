@@ -117,6 +117,15 @@ class TestDashboardPage:
         assert "<head>" in html
         assert "<body>" in html
 
+    def test_dashboard_page_shows_rtc_error_as_unavailable(
+        self, mock_chrony_data: ChronyData
+    ) -> None:
+        """An RTC error reaches the RTC panel instead of 'not configured'."""
+        mock_chrony_data.rtc_error = "unauthorized"
+        html = str(dashboard_page(version="0.1.0", chrony_data=mock_chrony_data))
+        assert "RTC data unavailable" in html
+        assert "not configured" not in html
+
 
 class TestDashboardIds:
     """Every id on the full dashboard must be unique.

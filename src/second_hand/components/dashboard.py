@@ -69,7 +69,7 @@ def _main_content(
         if data.source_stats:
             sections.append(stats_table(data.source_stats))
         # RTC section handles None gracefully
-        sections.append(rtc_section(data.rtc))
+        sections.append(rtc_section(data.rtc, data.rtc_error))
 
     return div(".main-content")[sections]
 
