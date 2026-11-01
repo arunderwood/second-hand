@@ -21,6 +21,17 @@ RUN mkdir -p /etc/systemd/system/chrony.service.d \
     && printf '[Unit]\nConditionVirtualization=\n' \
         > /etc/systemd/system/chrony.service.d/container.conf
 
+# Where chrony.service is Type=notify (Ubuntu 26.04's chrony 4.8), chronyd
+# treats a failed readiness notification as fatal, and on GitHub's runners it
+# fails ("Could not send notification to $NOTIFY_SOCKET"). These tests need
+# chronyd running, not systemd's readiness tracking, so such a unit starts it
+# as a plain service with no notify socket. Units that fork are left alone.
+RUN if grep -qs '^Type=notify' /lib/systemd/system/chrony.service \
+        /usr/lib/systemd/system/chrony.service; then \
+        printf '[Service]\nType=exec\nUnsetEnvironment=NOTIFY_SOCKET\n' \
+            > /etc/systemd/system/chrony.service.d/no-notify.conf; \
+    fi
+
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 
