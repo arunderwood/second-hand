@@ -1,10 +1,12 @@
 """Chrony service for fetching data from chronyd."""
 
+import logging
 from dataclasses import dataclass, field
 
 from pychrony import (
     ChronyConnection,
     ChronyConnectionError,
+    ChronyDataError,
     ChronyLibraryError,
     ChronyPermissionError,
     RTCData,
@@ -16,6 +18,8 @@ from pychrony import (
 from second_hand.config import get_settings
 from second_hand.services.geoip import GeoIPService
 from second_hand.utils import country_code_to_flag
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -96,7 +100,13 @@ def fetch_chrony_data(address: str | None = None) -> ChronyData:
             tracking = conn.get_tracking()
             sources = conn.get_sources()
             source_stats = conn.get_source_stats()
-            rtc = conn.get_rtc_data()  # Returns None if unavailable
+            # None means chronyd tracks no RTC. A rejected or malformed RTC
+            # reply only costs the RTC panel, not the rest of the dashboard.
+            try:
+                rtc = conn.get_rtc_data()
+            except ChronyDataError as e:
+                logger.warning("chronyd RTC data unavailable: %s", e)
+                rtc = None
     except (ChronyConnectionError, ChronyLibraryError):
         return ChronyData(
             tracking=None,

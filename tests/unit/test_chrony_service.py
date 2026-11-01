@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pychrony import (
     ChronyConnectionError,
+    ChronyDataError,
     ChronyPermissionError,
     RTCData,
     Source,
@@ -200,6 +201,29 @@ class TestFetchChronyData:
         assert result.rtc is None
         assert result.error is None
         assert result.is_connected is True
+
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_rtc_rejected_keeps_the_rest(
+        self,
+        mock_connection_class: MagicMock,
+        mock_tracking: TrackingStatus,
+        mock_sources: list[Source],
+        mock_source_stats: list[SourceStats],
+    ) -> None:
+        """A rejected RTC request leaves only the RTC panel empty."""
+        mock_conn = MagicMock()
+        mock_conn.get_tracking.return_value = mock_tracking
+        mock_conn.get_sources.return_value = mock_sources
+        mock_conn.get_source_stats.return_value = mock_source_stats
+        mock_conn.get_rtc_data.side_effect = ChronyDataError("unauthorized")
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
+
+        result = fetch_chrony_data()
+
+        assert result.tracking == mock_tracking
+        assert result.sources == mock_sources
+        assert result.rtc is None
+        assert result.error is None
 
     @patch("second_hand.services.chrony.ChronyConnection")
     def test_custom_address_passed_to_connection(
