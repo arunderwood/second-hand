@@ -3,6 +3,8 @@
 %:
 	dh $@
 
+# build-pex.sh needs uv on PATH, which is not a Debian package: CI installs it
+# with astral-sh/setup-uv before running dpkg-buildpackage.
 override_dh_auto_build:
 	./scripts/build-pex.sh
 

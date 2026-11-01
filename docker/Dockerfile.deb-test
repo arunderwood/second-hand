@@ -15,6 +15,23 @@ RUN apt-get update && apt-get install -y \
 # Configure chrony for testing (local reference clock)
 RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
 
+# Ubuntu 26.04's chrony.service skips itself inside containers
+# (ConditionVirtualization=!container). An empty assignment clears the list.
+RUN mkdir -p /etc/systemd/system/chrony.service.d \
+    && printf '[Unit]\nConditionVirtualization=\n' \
+        > /etc/systemd/system/chrony.service.d/container.conf
+
+# Where chrony.service is Type=notify (Ubuntu 26.04's chrony 4.8), chronyd
+# treats a failed readiness notification as fatal, and on GitHub's runners it
+# fails ("Could not send notification to $NOTIFY_SOCKET"). These tests need
+# chronyd running, not systemd's readiness tracking, so such a unit starts it
+# as a plain service with no notify socket. Units that fork are left alone.
+RUN if grep -qs '^Type=notify' /lib/systemd/system/chrony.service \
+        /usr/lib/systemd/system/chrony.service; then \
+        printf '[Service]\nType=exec\nUnsetEnvironment=NOTIFY_SOCKET\n' \
+            > /etc/systemd/system/chrony.service.d/no-notify.conf; \
+    fi
+
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 
@@ -34,3 +51,10 @@ RUN mv /usr/bin/systemctl /usr/bin/systemctl.real \
 
 # Enable services to start on boot (now with real systemctl)
 RUN systemctl enable chrony second-hand
+
+# Docker's Debian bases ship a policy-rc.d that vetoes every service action, so
+# packages do not start daemons during `docker build`. Past this point the
+# container stands in for a real host, where a package upgrade restarts its
+# service; with the veto in place the upgrade test would keep running the old
+# version.
+RUN rm -f /usr/sbin/policy-rc.d

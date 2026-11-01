@@ -10,8 +10,9 @@ on:
   pull_request:
     paths:
       - debian/**
-      # pex resolves dependencies from here, not from uv.lock.
+      # pex resolves dependencies and itself from these.
       - pyproject.toml
+      - uv.lock
       - scripts/build-pex.sh
       - docker/Dockerfile.deb-test
       - docker/test-deb.sh
@@ -38,15 +39,15 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
+    # Trixie, not the oldest supported release: its debhelper installs the
+    # systemd unit under /usr/lib, as merged-/usr requires. The pex bundles
+    # wheels for every supported Python whatever the build host runs.
     container:
-      image: debian:bookworm
+      image: debian:trixie
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          path: source
-          fetch-depth: 0  # Required for hatch-vcs to read git tags
-
+      # Before checkout: the container has no git, and without it
+      # actions/checkout downloads a tarball with no history, so neither the
+      # PR version (git describe) nor hatch-vcs can read the tags.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -55,13 +56,25 @@ jobs:
           # recommend kept: without it dch cannot validate release names.
           apt-get install -y --no-install-recommends \
             debhelper \
-            python3-pip \
+            python3 \
+            python3-venv \
+            ca-certificates \
             build-essential \
             libffi-dev \
             git \
             devscripts \
             libdistro-info-perl \
             lintian
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: source
+          fetch-depth: 0  # Required for hatch-vcs to read git tags
+
+      # scripts/build-pex.sh resolves dependencies and pex from uv.lock.
+      - name: Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       # Runs on pull_request as well as on releases. This is the only step that
       # regenerates the changelog entry and its trailer, and the lintian gate
@@ -80,12 +93,14 @@ jobs:
         run: |
           VERSION="$TAG"
           VERSION="${VERSION#v}"
-          # No tag outside a release. Re-stamp the version the changelog already
-          # carries, with a +ci suffix so the entry is genuinely newer than the
-          # one it follows and so a PR-built .deb is never mistaken for a release.
+          # No tag outside a release. Stamp the newest release tag with a +ci
+          # suffix: dpkg sorts that above the release, so test-deb-upgrade can
+          # install this build over it, and a PR-built .deb is never mistaken
+          # for a release.
           if [ -z "$VERSION" ]; then
-            VERSION="$(dpkg-parsechangelog -S Version)"
-            VERSION="${VERSION%-*}+ci"
+            git config --global --add safe.directory "$PWD"
+            VERSION="$(git describe --tags --abbrev=0 --match 'v*')"
+            VERSION="${VERSION#v}+ci"
             RELEASE_BODY="Changelog rewrite exercised by CI; not a release build."
           fi
 
@@ -153,8 +168,9 @@ jobs:
             arch: arm64
             debian_version: debian-12
           # Debian 13 (trixie) - Python 3.13
-          # amd64 skipped: ships free-threaded Python 3.13 (CPython-t) and
-          # cffi/pydantic-core lack cp313t wheels. Re-enable when ecosystem catches up.
+          - runner: ubuntu-latest
+            arch: amd64
+            debian_version: debian-13
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: debian-13
@@ -165,6 +181,13 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
             debian_version: ubuntu-24.04
+          # Ubuntu 26.04 (resolute) - Python 3.14
+          - runner: ubuntu-latest
+            arch: amd64
+            debian_version: ubuntu-26.04
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            debian_version: ubuntu-26.04
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 10
     steps:
@@ -190,11 +213,66 @@ jobs:
           chmod +x docker/test-deb.sh
           docker/test-deb.sh
 
+  # Hosts upgrade rather than install fresh, and an upgrade runs the old
+  # package's maintainer scripts against the new one's. Installs the newest
+  # released .deb, then upgrades it in place to this build.
+  test-deb-upgrade:
+    needs: build-deb
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download this build's .deb
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: deb-${{ matrix.arch }}
+          path: new/
+
+      # The newest release that carries a .deb for this architecture. On a
+      # release event the release being published has none yet, so a plain
+      # "latest" lookup would find nothing to upgrade from.
+      - name: Download the previous release's .deb
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          tag="$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq \
+            "[.[] | select(any(.assets[]; .name | endswith(\"_${ARCH}.deb\")))][0].tag_name")"
+          echo "Upgrading from $tag"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern "*_${ARCH}.deb" --dir docker/
+
+      - name: Build test image with the previous release
+        run: |
+          docker build \
+            --build-arg DEBIAN_VERSION=debian-12 \
+            -t second-hand-deb-test:latest \
+            -f docker/Dockerfile.deb-test docker/
+
+      - name: Upgrade to this build and run .deb integration tests
+        run: |
+          chmod +x docker/test-deb.sh
+          UPGRADE_TO="$(ls new/*.deb)" docker/test-deb.sh
+
   upload-release:
-    needs: test-deb
+    needs: [test-deb, test-deb-upgrade]
     if: github.event_name == 'release'
     permissions:
       contents: write
+      # Signing the provenance attestation for the uploaded packages.
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -204,11 +282,21 @@ jobs:
           pattern: deb-*
           merge-multiple: true
 
+      - name: Write checksums
+        run: sha256sum ./*.deb | sed 's| \./| |' > SHA256SUMS
+
+      # Lets a consumer prove a .deb was built by this workflow from this
+      # commit: `gh attestation verify <file>.deb --repo <owner>/second-hand`.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "*.deb"
+
       - name: Upload .deb to release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload --repo "$GITHUB_REPOSITORY" "$TAG" ./*.deb
+        run: gh release upload --repo "$GITHUB_REPOSITORY" "$TAG" ./*.deb SHA256SUMS
 
   # A release whose assets never uploaded still looks published: consumers that
   # resolve "newest tag carrying a .deb" quietly stay on the previous version.

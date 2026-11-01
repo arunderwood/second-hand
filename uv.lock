@@ -504,6 +504,16 @@ wheels = [
 ]
 
 [[package]]
+name = "pex"
+version = "2.105.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/b2/6a6e1ab4f1287f74200df106eef6f6fca832b5bb0300c84de52de3bbb4ea/pex-2.105.0.tar.gz", hash = "sha256:1d24fbe0bc208183f7fefcff1834ae7527f36235f59cc447d29d0d1ab12518ae", size = 5460820, upload-time = "2026-10-24T17:58:36.603Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/ba/9e39efe25140428a7e3c3a95709923fe0956c82a75a260cc054ea991fdca/pex-2.105.0-py2.py35.py36.py37.py38.py39.py310.py311-none-any.whl", hash = "sha256:754967f4e0af3328e9400740c282895faa6675b8c4458e9acad403abffa30a57", size = 4132322, upload-time = "2026-10-24T17:58:32.698Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/cd/b7750d9c09343c8051e605db22be06d0b1495ab447d5676264f1d3db4258/pex-2.105.0-py3.py312-none-any.whl", hash = "sha256:256656699103a7852646ec5c3b0e58417ffbc6a62ce2082d9376e0447a2c463d", size = 1949716, upload-time = "2026-10-24T17:58:34.793Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -802,6 +812,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "pex" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -822,6 +835,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "pex", specifier = ">=2.105.0" }]
 dev = [
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=6.0.0" },

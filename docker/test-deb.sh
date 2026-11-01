@@ -90,6 +90,39 @@ wait_for_dashboard() {
 wait_for_service chrony
 wait_for_service second-hand
 
+# UPGRADE_TO names a newer .deb. The image then holds an older release, and the
+# upgrade happens here with systemd running, as it would on a real host: the
+# maintainer scripts of both versions run and the service is restarted. Every
+# check below then runs against the upgraded package.
+if [ -n "${UPGRADE_TO:-}" ]; then
+    echo "=== Upgrading to $(basename "$UPGRADE_TO") ==="
+    health() { docker exec "$CONTAINER_NAME" curl -sf http://localhost:8000/health; }
+    attempt=1
+    until OLD_HEALTH=$(health); do
+        [ $attempt -ge 15 ] && { echo "✗ Old version never became healthy"; exit 1; }
+        sleep 2; attempt=$((attempt + 1))
+    done
+    echo "Before: $OLD_HEALTH"
+
+    docker cp "$UPGRADE_TO" "$CONTAINER_NAME":/tmp/upgrade.deb
+    # The image dropped its package lists; without them apt cannot fetch a
+    # Recommends the new version adds, which a real host would install.
+    docker exec "$CONTAINER_NAME" apt-get update -qq
+    if ! docker exec "$CONTAINER_NAME" apt-get install -y /tmp/upgrade.deb; then
+        echo "✗ apt-get could not upgrade the package"
+        exit 1
+    fi
+    wait_for_service second-hand
+
+    attempt=1
+    until NEW_HEALTH=$(health) && [ "$NEW_HEALTH" != "$OLD_HEALTH" ]; do
+        [ $attempt -ge 15 ] && { echo "✗ Service still reports ${NEW_HEALTH:-nothing} after upgrade"; exit 1; }
+        sleep 2; attempt=$((attempt + 1))
+    done
+    echo "After: $NEW_HEALTH"
+    echo "✓ Upgraded in place and restarted"
+fi
+
 echo "=== Checking service logs for errors ==="
 # Fail if there are permission or connection errors in the logs
 if docker exec "$CONTAINER_NAME" journalctl -u second-hand --no-pager | grep -iE "permission denied|connection refused|error"; then
