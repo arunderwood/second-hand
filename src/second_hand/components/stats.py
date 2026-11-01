@@ -5,6 +5,7 @@ from pychrony import SourceStats
 
 from second_hand.components.base import tooltip_label
 from second_hand.components.tooltips import STATS_TOOLTIPS
+from second_hand.presentation import stats_address_label
 from second_hand.utils import format_duration, format_frequency, format_offset
 
 
@@ -84,7 +85,7 @@ def _stats_row(stats: SourceStats) -> Element:
     std_dev_formatted = f"{stats.std_dev:.2e}"
 
     return tr(".stats-row")[
-        td(".address")[stats.address],
+        td(".address")[stats_address_label(stats)],
         td(".ref-id")[ref_id_formatted],
         td(".samples")[str(stats.samples)],
         td(".runs")[str(stats.runs)],

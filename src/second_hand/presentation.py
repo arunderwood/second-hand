@@ -1,6 +1,6 @@
-"""Display rules for NTP sources, shared by the HTML table and the JSON API.
+"""Display rules for chrony sources, shared by the HTML tables and the JSON API.
 
-The dashboard renders the table server-side and then patches it from
+The dashboard renders the sources table server-side and then patches it from
 ``/api/sources``, so both must agree on every label and CSS class. Keeping the
 rules here means the browser applies values the server computed rather than
 re-deriving them.
@@ -8,7 +8,7 @@ re-deriving them.
 
 from typing import NamedTuple
 
-from pychrony import Source
+from pychrony import Source, SourceStats
 
 from second_hand.utils import format_reachability_visual
 
@@ -19,6 +19,7 @@ __all__ = [
     "reachability_percent",
     "source_state_class",
     "state_label",
+    "stats_address_label",
 ]
 
 
@@ -74,6 +75,24 @@ def source_state_class(source: Source) -> str | None:
     if not source.is_reachable():
         return "source-unreachable"
     return None
+
+
+def stats_address_label(stats: SourceStats) -> str:
+    """Name a source-statistics row.
+
+    chronyd reports an address only for network sources; a reference clock
+    carries its four-character name in the reference ID instead, which is what
+    chrony itself and the NTP sources table show (``NMEA``, ``PPS``). Fall back
+    to the hex reference ID when those bytes are not printable text.
+    """
+    if stats.address:
+        return stats.address
+    raw = stats.reference_id.to_bytes(4, "big")
+    if all(byte == 0 or 32 <= byte < 127 for byte in raw):
+        name = raw.rstrip(b"\x00").decode("ascii").strip()
+        if name:
+            return name
+    return f"{stats.reference_id:08X}"
 
 
 def reachability_percent(reachability: int) -> int:
