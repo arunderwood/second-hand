@@ -218,6 +218,17 @@ body {
   white-space: nowrap;
 }
 
+/* A timestamp needs roughly twice the width of every other value in the grid.
+   Two tracks keep it on one line; the wrap is the escape valve for a fallback
+   font wider still, so the text can never end up hidden under the next box. */
+.stat-box--wide {
+  grid-column: span 2;
+}
+
+.stat-box--wide .stat-value {
+  white-space: normal;
+}
+
 /* Status-based coloring for stat boxes */
 .stat-box[data-status="success"] .stat-value {
   color: var(--color-success);

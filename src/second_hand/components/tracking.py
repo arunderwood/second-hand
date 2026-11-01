@@ -81,7 +81,7 @@ def tracking_section(data: ChronyData) -> Element:
                 "Leap", leap_status_name, "leap_status", leap_health
             ),
             _stat_box_with_tooltip(
-                "Ref Time", format_timestamp(tracking.ref_time), "ref_time"
+                "Ref Time", format_timestamp(tracking.ref_time), "ref_time", wide=True
             ),
             _stat_box_with_tooltip(
                 "Interval",
@@ -157,9 +157,12 @@ def _stat_box(title: str, value: str, status: str = "") -> Element:
 
 
 def _stat_box_with_tooltip(
-    title: str, value: str, tooltip_key: str, status: str = ""
+    title: str, value: str, tooltip_key: str, status: str = "", wide: bool = False
 ) -> Element:
-    """Create a single statistic display box with tooltip."""
+    """Create a single statistic display box with tooltip.
+
+    ``wide`` gives the box two grid tracks, for a value too long for one.
+    """
     attrs: dict[str, str] = {}
     if status:
         attrs["data-status"] = status
@@ -171,7 +174,9 @@ def _stat_box_with_tooltip(
         else title
     )
 
-    return div(".stat-box", attrs)[
+    selector = ".stat-box.stat-box--wide" if wide else ".stat-box"
+
+    return div(selector, attrs)[
         div(".stat-title")[title_element],
         div(".stat-value")[value],
     ]
