@@ -91,3 +91,41 @@ class TestStatsTable:
         assert "data-table" in result
         assert "<thead>" in result
         assert "<tbody>" in result
+
+
+class TestReferenceClockLabel:
+    """Tests for naming rows that chronyd reports without an address."""
+
+    @pytest.mark.parametrize(
+        ("reference_id", "expected"),
+        [
+            (0x4E4D4541, "NMEA"),
+            (0x50505300, "PPS"),
+            (0x47505300, "GPS"),
+        ],
+    )
+    def test_refclock_named_from_reference_id(
+        self, reference_id: int, expected: str
+    ) -> None:
+        """A reference clock is labelled with its four-character name."""
+        stats = make_source_stats(address="", reference_id=reference_id)
+
+        result = str(stats_table([stats]))
+
+        assert f'<td class="address">{expected}</td>' in result
+
+    def test_unprintable_reference_id_falls_back_to_hex(self) -> None:
+        """An addressless row with binary reference ID shows the hex ID."""
+        stats = make_source_stats(address="", reference_id=0xC1A3CC71)
+
+        result = str(stats_table([stats]))
+
+        assert '<td class="address">C1A3CC71</td>' in result
+
+    def test_network_address_is_preferred(self) -> None:
+        """A source with an address keeps it, whatever the reference ID says."""
+        stats = make_source_stats(address="192.168.1.1", reference_id=0x4E4D4541)
+
+        result = str(stats_table([stats]))
+
+        assert '<td class="address">192.168.1.1</td>' in result
