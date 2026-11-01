@@ -45,12 +45,9 @@ jobs:
     container:
       image: debian:trixie
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          path: source
-          fetch-depth: 0  # Required for hatch-vcs to read git tags
-
+      # Before checkout: the container has no git, and without it
+      # actions/checkout downloads a tarball with no history, so neither the
+      # PR version (git describe) nor hatch-vcs can read the tags.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -68,6 +65,12 @@ jobs:
             devscripts \
             libdistro-info-perl \
             lintian
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: source
+          fetch-depth: 0  # Required for hatch-vcs to read git tags
 
       # scripts/build-pex.sh resolves dependencies and pex from uv.lock.
       - name: Install uv
