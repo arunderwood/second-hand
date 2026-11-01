@@ -8,6 +8,9 @@ Wants=chrony.service
 
 [Service]
 Type=simple
+# systemd allocates the user at start, so the package creates none. A static
+# second-hand user, if one exists, takes precedence over the dynamic one.
+DynamicUser=yes
 User=second-hand
 Group=second-hand
 ExecStart=/usr/bin/python3 /usr/lib/second-hand/second-hand.pex
@@ -17,7 +20,8 @@ Environment=SECOND_HAND_HOST=0.0.0.0
 Environment=SECOND_HAND_PORT=8000
 
 # The service user has no home, so pex's default PEX_ROOT is unwritable and the
-# pex would re-extract to a temporary directory on every start.
+# pex would re-extract to a temporary directory on every start. With
+# DynamicUser= this resolves to /var/cache/private/second-hand.
 CacheDirectory=second-hand
 Environment=PEX_ROOT=/var/cache/second-hand
 

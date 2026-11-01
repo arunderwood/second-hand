@@ -15,6 +15,12 @@ RUN apt-get update && apt-get install -y \
 # Configure chrony for testing (local reference clock)
 RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
 
+# Ubuntu 26.04's chrony.service skips itself inside containers
+# (ConditionVirtualization=!container). An empty assignment clears the list.
+RUN mkdir -p /etc/systemd/system/chrony.service.d \
+    && printf '[Unit]\nConditionVirtualization=\n' \
+        > /etc/systemd/system/chrony.service.d/container.conf
+
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 
@@ -34,3 +40,10 @@ RUN mv /usr/bin/systemctl /usr/bin/systemctl.real \
 
 # Enable services to start on boot (now with real systemctl)
 RUN systemctl enable chrony second-hand
+
+# Docker's Debian bases ship a policy-rc.d that vetoes every service action, so
+# packages do not start daemons during `docker build`. Past this point the
+# container stands in for a real host, where a package upgrade restarts its
+# service; with the veto in place the upgrade test would keep running the old
+# version.
+RUN rm -f /usr/sbin/policy-rc.d

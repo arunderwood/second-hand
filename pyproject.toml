@@ -44,6 +44,11 @@ dev = [
     "ruff>=0.17.0",
     "zizmor>=1.31.1",
 ]
+# Builds the pex inside the .deb; see scripts/build-pex.sh. A group of its own
+# so the lock pins it (and Dependabot bumps it) without installing it for dev.
+build = [
+    "pex>=2.105.0",
+]
 
 [project.scripts]
 second-hand = "second_hand.main:run"
