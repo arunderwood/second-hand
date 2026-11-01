@@ -5,7 +5,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-17
 ## Active Technologies
 - Python: deployed on the distro python3, 3.11–3.13 (Debian 12/13, Ubuntu 24.04); developed on 3.15 via .python-version; CI tests 3.11–3.15. FastAPI, uvicorn, htpy (type-safe HTML) (001-dashboard-init)
 - N/A (static page, no persistence) (001-dashboard-init)
-- Same Python range, plus pychrony and aiohttp (002-pychrony-integration)
+- Same Python range, plus pychrony and httpx2 (002-pychrony-integration)
 - N/A (read-only queries to chronyd via socket) (002-pychrony-integration)
 
 ## Project Structure

@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from pychrony.testing import make_tracking
 
-from second_hand.config import Settings
+from second_hand.config import Settings, get_settings
 from second_hand.middleware import (
     CONTENT_SECURITY_POLICY,
     DOCS_CONTENT_SECURITY_POLICY,
@@ -29,13 +29,7 @@ def mock_fetch_chrony_data() -> Generator[ChronyData, None, None]:
         rtc=None,
         error=None,
     )
-    with (
-        patch(
-            "second_hand.components.dashboard.fetch_chrony_data",
-            return_value=mock_data,
-        ),
-        patch("second_hand.main.fetch_chrony_data", return_value=mock_data),
-    ):
+    with patch("second_hand.main.fetch_chrony_data", return_value=mock_data):
         yield mock_data
 
 
@@ -161,11 +155,12 @@ class TestUnhandledExceptionResponses:
         """An unhandled exception still returns the security headers."""
         from second_hand.main import app
 
-        client = TestClient(app, raise_server_exceptions=False)
-
         # /api/sources raises if chronyd access blows up in an unexpected way.
-        with patch(
-            "second_hand.main.fetch_chrony_data", side_effect=RuntimeError("boom")
+        with (
+            TestClient(app, raise_server_exceptions=False) as client,
+            patch(
+                "second_hand.main.fetch_chrony_data", side_effect=RuntimeError("boom")
+            ),
         ):
             response = client.get("/api/sources")
 
@@ -265,11 +260,14 @@ class TestDocsEnabledInDevMode:
         import second_hand.main
 
         monkeypatch.setenv("SECOND_HAND_DEBUG", "true")
+        get_settings.cache_clear()
         dev_module = importlib.reload(second_hand.main)
         try:
-            yield TestClient(dev_module.app)
+            with TestClient(dev_module.app) as client:
+                yield client
         finally:
             monkeypatch.delenv("SECOND_HAND_DEBUG")
+            get_settings.cache_clear()
             importlib.reload(second_hand.main)
 
     @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])

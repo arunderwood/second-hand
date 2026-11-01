@@ -1,13 +1,16 @@
 """FastAPI application entry point for second-hand."""
 
+import asyncio
 import logging
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, TypedDict
 
-from fastapi import FastAPI, Request
+import httpx2
+import uvicorn
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -25,23 +28,34 @@ logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent / "static"
 
 
+class AppState(TypedDict):
+    """Per-application services, exposed to requests as ``request.state``."""
+
+    geoip: GeoIPService
+
+
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    """Manage application lifecycle for services.
+async def lifespan(app: FastAPI) -> AsyncGenerator[AppState]:
+    """Own the services that live as long as the application.
 
-    Initializes GeoIP service at startup and cleans up on shutdown.
+    The HTTP client is shared by every GeoIP lookup so connections to ipwho.is
+    are pooled, and it is closed on shutdown.
     """
-    # Startup: Initialize services
-    logger.info("Initializing GeoIP service (ipwho.is)...")
-    GeoIPService.get_instance()
-    logger.info("GeoIP service initialized")
+    async with httpx2.AsyncClient() as client:
+        logger.info("GeoIP service (ipwho.is) ready")
+        yield {"geoip": GeoIPService(client)}
 
-    yield
 
-    # Shutdown: Cleanup services
-    logger.info("Shutting down services...")
-    GeoIPService.reset_instance()
-    logger.info("Services shut down successfully")
+async def get_geoip(request: Request) -> GeoIPService:
+    """Dependency: the application's GeoIP service.
+
+    Async so FastAPI resolves it on the event loop rather than dispatching a
+    plain attribute read to its thread pool.
+    """
+    return request.state.geoip
+
+
+GeoIP = Annotated[GeoIPService, Depends(get_geoip)]
 
 
 _settings = get_settings()
@@ -86,14 +100,14 @@ if STATIC_DIR.exists():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard() -> str:
+async def dashboard(geoip: GeoIP) -> str:
     """Render the main dashboard page with enriched source data."""
-    chrony_data = fetch_chrony_data()
+    chrony_data = await asyncio.to_thread(fetch_chrony_data)
 
     # Enrich sources with geo data if we have sources
     enriched_sources = None
     if chrony_data.sources:
-        enriched_sources = await enrich_sources(chrony_data.sources)
+        enriched_sources = await enrich_sources(chrony_data.sources, geoip)
 
     return str(
         dashboard_page(
@@ -111,7 +125,7 @@ async def health_check() -> dict[str, str]:
 
 
 @app.get("/api/sources")
-async def api_sources() -> JSONResponse:
+async def api_sources(geoip: GeoIP) -> JSONResponse:
     """Get enriched NTP sources as JSON for real-time updates.
 
     Returns all NTP sources with enriched display data including
@@ -122,7 +136,7 @@ async def api_sources() -> JSONResponse:
         Returns 503 if unable to connect to chronyd.
     """
     settings = get_settings()
-    chrony_data = fetch_chrony_data()
+    chrony_data = await asyncio.to_thread(fetch_chrony_data)
 
     if chrony_data.error:
         return JSONResponse(
@@ -134,7 +148,7 @@ async def api_sources() -> JSONResponse:
         )
 
     # Enrich sources with geo data
-    enriched = await enrich_sources(chrony_data.sources)
+    enriched = await enrich_sources(chrony_data.sources, geoip)
 
     # Build response per API contract
     current_time = int(time.time())
@@ -214,10 +228,6 @@ async def server_error_handler(request: Request, exc: Exception) -> PlainTextRes
 
 def run() -> None:
     """Run the application with uvicorn."""
-    import uvicorn
-
-    from second_hand.config import get_settings
-
     settings = get_settings()
     uvicorn.run(
         "second_hand.main:app",

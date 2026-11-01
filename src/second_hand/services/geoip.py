@@ -4,12 +4,12 @@ Provides country-level geolocation using the free ipwho.is web service over
 HTTPS. The service handles private IPs gracefully and caches results.
 """
 
+import asyncio
 import ipaddress
 import logging
 from dataclasses import dataclass
-from typing import ClassVar
 
-import aiohttp
+import httpx2
 from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 # HTTPS is required so on-path attackers cannot tamper with the country data
 # that is rendered into the dashboard.
 GEOIP_API_URL = "https://ipwho.is/{ip}?fields=success,message,country_code,country"
+
+REQUEST_TIMEOUT_SECONDS = 3.0
+
+# Failures expire much sooner than answers, so one dropped request does not
+# hide a source's flag for long. The floor is the free tier's daily budget: a
+# source that keeps failing is retried 96 times a day at this TTL, which keeps
+# ten such sources under 1000 requests.
+FAILURE_CACHE_TTL_SECONDS = 900
 
 # Longest real country name is well under this; the cap only exists to bound
 # what a misbehaving upstream can put into the rendered page.
@@ -81,29 +89,41 @@ def _clean_country_name(value: object) -> str | None:
 
 
 class GeoIPService:
-    """Service for looking up IP address geolocation via ipwho.is.
+    """Look up IP address geolocation via ipwho.is.
 
-    Uses the free ipwho.is API over HTTPS for country-level lookups.
-    Implements singleton pattern for application lifecycle management.
-    Results are cached to minimize API calls (1000 req/day limit).
+    One instance lives for the life of the application, created in its
+    lifespan around a shared HTTP client so connections are pooled across
+    lookups. Answers are cached to stay inside the 1000 requests/day limit.
 
     Attributes:
-        failure_count: Counter for tracking GeoIP lookup failures (FR-024).
+        failure_count: Number of lookups that failed (FR-024).
     """
 
-    _instance: ClassVar["GeoIPService | None"] = None
-    failure_count: int = 0
-
-    def __init__(self, cache_ttl: int = 3600, cache_maxsize: int = 1024) -> None:
+    def __init__(
+        self,
+        client: httpx2.AsyncClient,
+        *,
+        cache_ttl: int = 3600,
+        failure_ttl: int = FAILURE_CACHE_TTL_SECONDS,
+        cache_maxsize: int = 1024,
+    ) -> None:
         """Initialize the GeoIP service.
 
         Args:
-            cache_ttl: Cache TTL in seconds (default: 1 hour).
-            cache_maxsize: Maximum cache entries (default: 1024).
+            client: HTTP client used for every request; the caller owns and
+                closes it.
+            cache_ttl: How long an answer is cached, in seconds.
+            failure_ttl: How long a failed lookup is cached, in seconds.
+            cache_maxsize: Maximum entries in each of the two caches.
         """
+        self._client = client
         self._cache: TTLCache[str, GeoIPResult] = TTLCache(
             maxsize=cache_maxsize, ttl=cache_ttl
         )
+        self._failures: TTLCache[str, GeoIPResult] = TTLCache(
+            maxsize=cache_maxsize, ttl=failure_ttl
+        )
+        self.failure_count = 0
 
     async def lookup(self, ip: str) -> GeoIPResult:
         """Look up the country for an IP address.
@@ -115,86 +135,77 @@ class GeoIPService:
             GeoIPResult with country information, or empty result for
             private/local IPs or lookup failures.
         """
-        # Check cache first
-        if ip in self._cache:
-            return self._cache[ip]
+        cached = self._cache.get(ip) or self._failures.get(ip)
+        if cached is not None:
+            return cached
 
-        # Check for private/local IPs
         if self._is_private_ip(ip):
             result = GeoIPResult(
-                ip_address=ip,
-                is_private=True,
-                country_code=None,
-                country_name=None,
+                ip_address=ip, is_private=True, country_code=None, country_name=None
             )
             self._cache[ip] = result
             return result
 
-        # Query the API
-        try:
-            async with (
-                aiohttp.ClientSession() as session,
-                session.get(
-                    GEOIP_API_URL.format(ip=ip), timeout=aiohttp.ClientTimeout(total=3)
-                ) as response,
-            ):
-                if response.status != 200:
-                    logger.debug(
-                        "GeoIP API returned status %d for %s", response.status, ip
-                    )
-                    self.failure_count += 1
-                    result = GeoIPResult(
-                        ip_address=ip,
-                        is_private=False,
-                        country_code=None,
-                        country_name=None,
-                    )
-                    self._cache[ip] = result
-                    return result
-
-                data = await response.json()
-
-                if not data.get("success"):
-                    logger.debug(
-                        "GeoIP lookup failed for %s: %s", ip, data.get("message")
-                    )
-                    self.failure_count += 1
-                    result = GeoIPResult(
-                        ip_address=ip,
-                        is_private=False,
-                        country_code=None,
-                        country_name=None,
-                    )
-                    self._cache[ip] = result
-                    return result
-
-                result = GeoIPResult(
-                    ip_address=ip,
-                    is_private=False,
-                    country_code=_clean_country_code(data.get("country_code")),
-                    country_name=_clean_country_name(data.get("country")),
-                )
-                self._cache[ip] = result
-                return result
-
-        except TimeoutError:
-            logger.debug("GeoIP lookup timed out for %s", ip)
+        result = await self._fetch(ip)
+        if result is None:
             self.failure_count += 1
-        except Exception as e:
-            logger.debug("GeoIP lookup failed for %s: %s", ip, e)
-            self.failure_count += 1
-
-        result = GeoIPResult(
-            ip_address=ip,
-            is_private=False,
-            country_code=None,
-            country_name=None,
-        )
-        self._cache[ip] = result
+            result = GeoIPResult(
+                ip_address=ip, is_private=False, country_code=None, country_name=None
+            )
+            self._failures[ip] = result
+        else:
+            self._cache[ip] = result
         return result
 
+    async def _fetch(self, ip: str) -> GeoIPResult | None:
+        """Query ipwho.is for one public address.
+
+        Returns:
+            The parsed result, or None if the lookup failed for any reason.
+        """
+        # httpx2's own timeout limits each phase (connect, read, ...) on its
+        # own; this caps the whole request so a slow upstream cannot hold the
+        # page render past it.
+        try:
+            async with asyncio.timeout(REQUEST_TIMEOUT_SECONDS):
+                response = await self._client.get(GEOIP_API_URL.format(ip=ip))
+        except (TimeoutError, httpx2.TimeoutException):
+            logger.debug("GeoIP lookup timed out for %s", ip)
+            return None
+        # Flags are decoration: no failure here may take the dashboard down.
+        except Exception as e:
+            logger.debug("GeoIP lookup failed for %s: %s", ip, e)
+            return None
+
+        if response.status_code != 200:
+            logger.debug(
+                "GeoIP API returned status %d for %s", response.status_code, ip
+            )
+            return None
+
+        try:
+            data = response.json()
+        except ValueError as e:
+            logger.debug("GeoIP API returned invalid JSON for %s: %s", ip, e)
+            return None
+
+        if not isinstance(data, dict) or not data.get("success"):
+            message = data.get("message") if isinstance(data, dict) else None
+            logger.debug("GeoIP lookup failed for %s: %s", ip, message)
+            return None
+
+        return GeoIPResult(
+            ip_address=ip,
+            is_private=False,
+            country_code=_clean_country_code(data.get("country_code")),
+            country_name=_clean_country_name(data.get("country")),
+        )
+
     async def batch_lookup(self, ips: list[str]) -> dict[str, GeoIPResult]:
-        """Look up countries for multiple IP addresses.
+        """Look up countries for multiple IP addresses concurrently.
+
+        Duplicates are looked up once: concurrent lookups of the same address
+        would all miss the cache and each spend a request.
 
         Args:
             ips: List of IP address strings.
@@ -202,55 +213,33 @@ class GeoIPService:
         Returns:
             Dictionary mapping IP addresses to GeoIPResult objects.
         """
-        results = {}
-        for ip in ips:
-            results[ip] = await self.lookup(ip)
-        return results
+        async with asyncio.TaskGroup() as tg:
+            tasks = {ip: tg.create_task(self.lookup(ip)) for ip in dict.fromkeys(ips)}
+        return {ip: task.result() for ip, task in tasks.items()}
 
     def _is_private_ip(self, ip_str: str) -> bool:
         """Check if an IP address is private/local/reserved.
+
+        ``is_global`` also rules out shared address space (100.64.0.0/10,
+        used by carrier-grade NAT and Tailscale), which ``is_private`` does
+        not cover and ipwho.is can only answer with "Reserved range".
+        Reserved and multicast ranges are checked separately because some of
+        them still count as global.
 
         Args:
             ip_str: IP address string.
 
         Returns:
-            True if the IP is private, loopback, link-local, or reserved.
+            True if the IP is not globally routable, reserved, or multicast.
         """
         try:
             ip = ipaddress.ip_address(ip_str)
-            return (
-                ip.is_private
-                or ip.is_loopback
-                or ip.is_link_local
-                or ip.is_reserved
-                or ip.is_multicast
-            )
+            return not ip.is_global or ip.is_reserved or ip.is_multicast
         except ValueError:
             # Invalid IP treated as non-geolocatable
             return True
 
     @property
-    def is_available(self) -> bool:
-        """Check if the GeoIP service is available."""
-        return True  # API is always available (may be rate-limited)
-
-    @property
     def cache_size(self) -> int:
-        """Current number of entries in the cache."""
-        return len(self._cache)
-
-    @classmethod
-    def get_instance(cls) -> "GeoIPService":
-        """Get the singleton instance of GeoIPService.
-
-        Returns:
-            The singleton GeoIPService instance.
-        """
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-    @classmethod
-    def reset_instance(cls) -> None:
-        """Reset the singleton instance (primarily for testing)."""
-        cls._instance = None
+        """Current number of cached answers and failures."""
+        return len(self._cache) + len(self._failures)

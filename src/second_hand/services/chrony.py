@@ -14,6 +14,7 @@ from pychrony import (
 )
 
 from second_hand.config import get_settings
+from second_hand.services.geoip import GeoIPService
 from second_hand.utils import country_code_to_flag
 
 
@@ -75,6 +76,9 @@ class ChronyData:
 def fetch_chrony_data(address: str | None = None) -> ChronyData:
     """Fetch all chrony data from chronyd.
 
+    This blocks on chronyd's socket, so async callers must run it in a worker
+    thread (``asyncio.to_thread``) rather than on the event loop.
+
     Args:
         address: chronyd address as "host", "host:port", or a Unix socket path.
             Defaults to the configured SECOND_HAND_CHRONY_ADDRESS.
@@ -122,7 +126,9 @@ def fetch_chrony_data(address: str | None = None) -> ChronyData:
     )
 
 
-async def enrich_sources(sources: list[Source]) -> list[EnrichedSource]:
+async def enrich_sources(
+    sources: list[Source], geoip_service: GeoIPService
+) -> list[EnrichedSource]:
     """Enrich NTP sources with geolocation data.
 
     Performs batch GeoIP lookups for all sources and combines
@@ -130,15 +136,11 @@ async def enrich_sources(sources: list[Source]) -> list[EnrichedSource]:
 
     Args:
         sources: List of Source objects from pychrony.
+        geoip_service: The application's GeoIP service.
 
     Returns:
         List of EnrichedSource objects with display metadata.
     """
-    from second_hand.services.geoip import GeoIPService
-
-    # Get service instance
-    geoip_service = GeoIPService.get_instance()
-
     # Extract IP addresses for batch lookup
     ips = [source.address for source in sources]
 
