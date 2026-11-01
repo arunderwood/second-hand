@@ -115,3 +115,25 @@ class TestTrackingSection:
         # Should have title and value structure
         assert "stat-title" in result
         assert "stat-value" in result
+
+    def test_ref_time_box_is_wide(
+        self, mock_tracking_synchronized: TrackingStatus
+    ) -> None:
+        """Only the Ref Time box spans two grid tracks.
+
+        A full timestamp needs about twice the width of every other value, and
+        one track hides its tail under the next box.
+        """
+        data = ChronyData(
+            tracking=mock_tracking_synchronized,
+            sources=[],
+            source_stats=[],
+            rtc=None,
+            error=None,
+        )
+
+        result = str(tracking_section(data))
+
+        assert result.count('class="stat-box stat-box--wide"') == 1
+        wide_box = result.split('class="stat-box stat-box--wide"')[1]
+        assert ">Ref Time<" in wide_box[: wide_box.index("stat-value")]
