@@ -34,17 +34,69 @@ echo "Building for architecture: $ARCH_SUFFIX"
 uv export --frozen --no-dev --no-editable --format pylock.toml \
     --output-file dist/pylock.toml > /dev/null
 
-# pip's --platform only walks the compatibility ladder for the legacy
-# manylinux2014/2010 prefixes, not PEP 600 manylinux_x_y. manylinux2014 is the
-# one request every dependency matches; a PEP 600 request hides pydantic-core
-# and silently falls back to building it from source.
-MANYLINUX="manylinux2014"
+# Wheels are selected for each interpreter through a complete platform: the
+# full PEP 508 marker environment plus the list of wheel tags that interpreter
+# accepts. An abbreviated `--platform cp311-...` string cannot do this job. It
+# carries no patch number, so pex leaves python_full_version undefined, and any
+# dependency whose metadata mentions that marker fails the resolve outright --
+# even when the marker only guards an extra that is never installed. Generating
+# the environment from a real interpreter defines every marker, and it also
+# drops the need for --resolve-local-platforms, which only ever supplied a
+# complete environment for the one version the build host happened to run.
+PYTHON_VERSIONS=(3.11 3.12 3.13 3.14 3.15)
 
-# Every version is listed, whichever python3 the build host has;
-# --resolve-local-platforms swaps in the local interpreter for its own one.
+# pip's --platform only walked the compatibility ladder for the legacy
+# manylinux2014/2010 prefixes, so manylinux2014 was the one request every
+# dependency matched. A complete platform instead lists the tags outright, and
+# an interpreter reports the ladder its *build host* supports -- up to
+# manylinux_2_39 on Ubuntu 24.04. Shipping wheels chosen that way would leave
+# the .deb broken on Debian 12 (glibc 2.36), so the ladder is trimmed back to
+# the same manylinux2014 ceiling. Keep this in step with the oldest glibc in
+# debian/control's supported distros.
+MANYLINUX_CEILING=17
+
+echo "Generating complete platforms for: ${PYTHON_VERSIONS[*]}"
 PLATFORMS=()
-for version in 311 312 313 314 315; do
-    PLATFORMS+=(--platform "${MANYLINUX}_${ARCH_SUFFIX}-cp-${version}-cp${version}")
+for version in "${PYTHON_VERSIONS[@]}"; do
+    uv python install "$version" > /dev/null
+    interpreter=$(uv python find "$version")
+    raw="dist/complete-platform-${version}.raw.json"
+    trimmed="dist/complete-platform-${version}.json"
+
+    UV_PROJECT_ENVIRONMENT=dist/build-venv \
+        uv run --frozen --only-group build --python /usr/bin/python3 \
+        pex3 interpreter inspect --python "$interpreter" --markers --tags \
+        --indent 2 > "$raw"
+
+    python3 - "$raw" "$trimmed" "$MANYLINUX_CEILING" <<'EOF'
+import json
+import re
+import sys
+
+source, destination, ceiling = sys.argv[1], sys.argv[2], int(sys.argv[3])
+inspected = json.load(open(source))
+
+# manylinux_2_17 and the manylinux2014 alias for it both stay; anything built
+# against a newer glibc goes.
+too_new = re.compile(r"manylinux_2_(\d+)")
+tags = [
+    tag
+    for tag in inspected["compatible_tags"]
+    if not any(int(version) > ceiling for version in too_new.findall(tag))
+]
+if not tags:
+    sys.exit(f"build-pex.sh: no wheel tags survived the manylinux ceiling in {source}")
+
+json.dump(
+    {
+        "marker_environment": inspected["marker_environment"],
+        "compatible_tags": tags,
+    },
+    open(destination, "w"),
+    indent=2,
+)
+EOF
+    PLATFORMS+=(--complete-platform "$trimmed")
 done
 
 # The interpreter constraint stops at the newest bundled version: on a newer
@@ -52,10 +104,9 @@ done
 # dependency it has no wheel for. debian/control carries the same upper bound
 # on python3 so apt refuses the install instead; change both together.
 #
-# pex runs under the system python3 so --resolve-local-platforms finds it, in a
-# venv of its own so the build never disturbs a developer's .venv. It builds
-# that pip venv with `python3 -m venv`, which on Debian is the separate
-# python3-venv package (Build-Depends).
+# pex runs under the system python3, in a venv of its own so the build never
+# disturbs a developer's .venv. It builds that pip venv with `python3 -m venv`,
+# which on Debian is the separate python3-venv package (Build-Depends).
 UV_PROJECT_ENVIRONMENT=dist/build-venv \
     uv run --frozen --only-group build --python /usr/bin/python3 \
     pex \
@@ -63,7 +114,6 @@ UV_PROJECT_ENVIRONMENT=dist/build-venv \
     --python-shebang=/usr/bin/python3 \
     --interpreter-constraint='>=3.11,<3.16' \
     --pip-version=latest-compatible \
-    --resolve-local-platforms \
     "${PLATFORMS[@]}" \
     -o dist/second-hand.pex \
     -c second-hand
