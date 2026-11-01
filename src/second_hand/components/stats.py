@@ -61,7 +61,7 @@ def _header_with_tooltip(text: str, tooltip_key: str) -> Element | str:
     """
     tooltip_content = STATS_TOOLTIPS.get(tooltip_key)
     if tooltip_content:
-        return tooltip_label(text, tooltip_content)
+        return tooltip_label(text, tooltip_content, section="stats")
     return text
 
 

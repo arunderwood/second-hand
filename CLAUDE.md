@@ -16,6 +16,8 @@ src/second_hand/
 ├── main.py
 ├── config.py
 ├── middleware.py
+├── presentation.py
+├── schemas.py
 ├── components/
 │   ├── __init__.py
 │   ├── base.py

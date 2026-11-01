@@ -1,13 +1,27 @@
 """Base layout component for second-hand pages."""
 
-from htpy import Element, body, head, html, link, meta, span, title
+from htpy import (
+    Element,
+    a,
+    body,
+    div,
+    h1,
+    head,
+    html,
+    link,
+    meta,
+    p,
+    script,
+    span,
+    title,
+)
 
 from second_hand.components.tooltips import TooltipContent
 
 __all__ = ["base_layout", "error_page", "tooltip_label"]
 
 
-def tooltip_label(text: str, tooltip: TooltipContent) -> Element:
+def tooltip_label(text: str, tooltip: TooltipContent, *, section: str) -> Element:
     """Create a label with accessible tooltip.
 
     Uses pure CSS tooltips with ARIA attributes for WCAG 2.1 AA compliance.
@@ -17,6 +31,9 @@ def tooltip_label(text: str, tooltip: TooltipContent) -> Element:
     Args:
         text: The label text to display.
         tooltip: TooltipContent object with description and optional guidance.
+        section: Dashboard section the label sits in. Several sections share
+            label text ("Offset", "Stratum"), and the section keeps the
+            ``aria-describedby`` target id unique on the page.
 
     Returns:
         htpy Element with tooltip trigger and accessible content.
@@ -29,7 +46,8 @@ def tooltip_label(text: str, tooltip: TooltipContent) -> Element:
         tooltip_text += f" Bad: {tooltip.bad_values}."
 
     # Generate unique ID for aria-describedby
-    label_id = f"tip-{text.lower().replace(' ', '-').replace('/', '-')}"
+    slug = text.lower().replace(" ", "-").replace("/", "-")
+    label_id = f"tip-{section}-{slug}"
 
     return span(
         ".tooltip-trigger",
@@ -53,8 +71,6 @@ def base_layout(page_title: str, content: Element) -> Element:
     Returns:
         Complete HTML document as an htpy Element.
     """
-    from htpy import script
-
     return html(lang="en")[
         head[
             meta(charset="utf-8"),
@@ -80,8 +96,6 @@ def error_page(code: int, message: str) -> Element:
     Returns:
         Complete HTML error page as an htpy Element.
     """
-    from htpy import a, div, h1, p
-
     content = div(".error-page")[
         div(".error-container")[
             h1(".error-code")[str(code)],

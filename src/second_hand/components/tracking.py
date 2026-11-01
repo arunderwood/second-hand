@@ -166,7 +166,9 @@ def _stat_box_with_tooltip(
 
     tooltip_content = TRACKING_TOOLTIPS.get(tooltip_key)
     title_element: Element | str = (
-        tooltip_label(title, tooltip_content) if tooltip_content else title
+        tooltip_label(title, tooltip_content, section="tracking")
+        if tooltip_content
+        else title
     )
 
     return div(".stat-box", attrs)[
@@ -181,7 +183,9 @@ def _stat_box_with_tooltip_and_health(
     """Create a statistic display box with tooltip and health-colored value."""
     tooltip_content = TRACKING_TOOLTIPS.get(tooltip_key)
     title_element: Element | str = (
-        tooltip_label(title, tooltip_content) if tooltip_content else title
+        tooltip_label(title, tooltip_content, section="tracking")
+        if tooltip_content
+        else title
     )
 
     value_element = span(f".status-{health_status}")[value]

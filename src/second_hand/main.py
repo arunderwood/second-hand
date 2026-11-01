@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, TypedDict
 
 import httpx2
 import uvicorn
@@ -19,6 +18,7 @@ from second_hand.components import dashboard_page
 from second_hand.components.base import error_page
 from second_hand.config import get_settings
 from second_hand.middleware import SecurityHeadersMiddleware, build_security_headers
+from second_hand.schemas import ApiError, SourcesResponse
 from second_hand.services.chrony import enrich_sources, fetch_chrony_data
 from second_hand.services.geoip import GeoIPService
 
@@ -110,6 +110,7 @@ async def dashboard(geoip: GeoIP) -> str:
             version=__version__,
             chrony_data=chrony_data,
             enriched_sources=enriched_sources,
+            refresh_interval=get_settings().refresh_interval,
         )
     )
 
@@ -120,8 +121,14 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy", "version": __version__}
 
 
-@app.get("/api/sources")
-async def api_sources(geoip: GeoIP) -> JSONResponse:
+# response_model is explicit because the 503 path returns a JSONResponse, and
+# FastAPI cannot derive a model from a union that includes a Response.
+@app.get(
+    "/api/sources",
+    response_model=SourcesResponse,
+    responses={503: {"model": ApiError, "description": "chronyd is unreachable"}},
+)
+async def api_sources(geoip: GeoIP) -> SourcesResponse | JSONResponse:
     """Get enriched NTP sources as JSON for real-time updates.
 
     Returns all NTP sources with enriched display data including
@@ -131,69 +138,20 @@ async def api_sources(geoip: GeoIP) -> JSONResponse:
         JSON response with sources, timestamp, sync status, and refresh interval.
         Returns 503 if unable to connect to chronyd.
     """
-    settings = get_settings()
     chrony_data = await asyncio.to_thread(fetch_chrony_data)
 
     if chrony_data.error:
         return JSONResponse(
             status_code=503,
-            content={
-                "error": "connection_failed",
-                "message": chrony_data.error,
-            },
+            content=ApiError(
+                error="connection_failed", message=chrony_data.error
+            ).model_dump(),
         )
 
-    # Enrich sources with geo data
-    enriched = await enrich_sources(chrony_data.sources, geoip)
-
-    # Build response per API contract
-    current_time = int(time.time())
-    sources_data: list[dict[str, Any]] = []
-
-    for es in enriched:
-        source = es.source
-        poll_seconds = 2**source.poll
-        last_rx_timestamp = int(current_time - source.last_sample_ago)
-
-        # Convert reachability to bits array (newest first for API)
-        reach_bits = [(source.reachability >> i) & 1 == 1 for i in range(8)]
-        reach_percent = int(sum(reach_bits) / 8 * 100)
-
-        # Map mode to display name
-        mode_map = {"CLIENT": "server", "PEER": "peer", "LOCAL": "refclock"}
-        mode_display = mode_map.get(source.mode.name, "server")
-
-        sources_data.append(
-            {
-                "address": source.address,
-                "display_name": es.display_name,
-                "country_code": es.country_code,
-                "country_name": es.country_name,
-                "country_flag": es.country_flag,
-                "mode": mode_display,
-                "mode_raw": source.mode.name,
-                "state": source.state.name.replace("_", " ").title(),
-                "is_selected": source.state.name == "SELECTED",
-                "stratum": source.stratum,
-                "poll": poll_seconds,
-                "poll_exponent": source.poll,
-                "reachability": source.reachability,
-                "reachability_bits": reach_bits,
-                "reachability_percent": reach_percent,
-                "last_rx": source.last_sample_ago,
-                "last_rx_timestamp": last_rx_timestamp,
-                "latest_meas": source.latest_meas,
-                "latest_meas_err": source.latest_meas_err,
-            }
-        )
-
-    return JSONResponse(
-        content={
-            "sources": sources_data,
-            "timestamp": current_time,
-            "is_synchronized": chrony_data.is_synchronized,
-            "refresh_interval": settings.refresh_interval,
-        }
+    return SourcesResponse.build(
+        await enrich_sources(chrony_data.sources, geoip),
+        is_synchronized=chrony_data.is_synchronized,
+        refresh_interval=get_settings().refresh_interval,
     )
 
 

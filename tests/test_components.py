@@ -1,6 +1,15 @@
 """Tests for htpy components."""
 
+import re
+from collections import Counter
+
 import pytest
+from pychrony.testing import (
+    make_rtc_data,
+    make_source,
+    make_source_stats,
+    make_tracking,
+)
 
 from second_hand.components.base import base_layout, error_page
 from second_hand.components.dashboard import dashboard_page
@@ -107,3 +116,35 @@ class TestDashboardPage:
         assert "</html>" in html
         assert "<head>" in html
         assert "<body>" in html
+
+
+class TestDashboardIds:
+    """Every id on the full dashboard must be unique.
+
+    Tooltip labels point aria-describedby at an id, and a duplicate makes a
+    screen reader announce another section's description.
+    """
+
+    def test_ids_are_unique_with_every_section_rendered(self) -> None:
+        data = ChronyData(
+            tracking=make_tracking(),
+            sources=[make_source()],
+            source_stats=[make_source_stats()],
+            rtc=make_rtc_data(),
+            error=None,
+        )
+        html = str(dashboard_page(version="0.1.0", chrony_data=data))
+
+        ids = Counter(re.findall(r'\bid="([^"]+)"', html))
+        assert ids, "expected tooltip ids on the page"
+        assert {i: n for i, n in ids.items() if n > 1} == {}
+
+    def test_refresh_interval_reaches_the_page(
+        self, mock_chrony_data: ChronyData
+    ) -> None:
+        html = str(
+            dashboard_page(
+                version="0.1.0", chrony_data=mock_chrony_data, refresh_interval=45
+            )
+        )
+        assert 'data-refresh-interval="45"' in html
