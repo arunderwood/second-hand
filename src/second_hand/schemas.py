@@ -31,13 +31,14 @@ class SourceOut(BaseModel):
     is_selected: bool
     row_class: str | None
     stratum: int
-    poll: int
+    # Seconds. Float because chrony allows negative poll exponents (2**-2).
+    poll: float
     poll_exponent: int
     reachability: int
     # Newest poll first, the reverse of the table's left-to-right order.
     reachability_bits: list[bool]
     reachability_percent: int
-    last_rx: float
+    last_rx: int
     last_rx_timestamp: int
     latest_meas: float
     latest_meas_display: str

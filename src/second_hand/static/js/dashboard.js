@@ -75,10 +75,13 @@ function updateCountdowns() {
     const countdowns = document.querySelectorAll('.poll[data-poll-interval]');
 
     countdowns.forEach(cell => {
-        const interval = parseInt(cell.dataset.pollInterval, 10);
+        const interval = parseFloat(cell.dataset.pollInterval);
         const lastRx = parseInt(cell.dataset.lastRxTime, 10);
 
         if (isNaN(interval) || isNaN(lastRx)) return;
+        // Sub-second polls cycle faster than this one-second tick, so the
+        // server-rendered interval stays as the label.
+        if (interval < 1) return;
 
         // Calculate time since last receive
         const elapsed = now - lastRx;
@@ -173,27 +176,32 @@ async function refreshData() {
  * Rows are matched to sources by address. The table itself is rendered by
  * the server, so when the set of sources changes (one added or removed, or
  * chronyd coming back after the page loaded without it) only a reload can
- * redraw it.
+ * redraw it. Addresses are not guaranteed unique (two refclocks can share a
+ * refid), so rows sharing one are paired with sources in table order.
  *
  * @param {Object} data - API response data
  */
 function updateDashboard(data) {
     if (!Array.isArray(data.sources)) return;
 
-    const rows = new Map();
-    document.querySelectorAll('.source-row[data-address]').forEach(row => {
-        rows.set(row.dataset.address, row);
-    });
-
-    const sameSources = data.sources.length === rows.size
-        && data.sources.every(source => rows.has(source.address));
+    const rowElements = [...document.querySelectorAll('.source-row[data-address]')];
+    const addressKey = addresses => [...addresses].sort().join('\n');
+    const sameSources = addressKey(rowElements.map(row => row.dataset.address))
+        === addressKey(data.sources.map(source => source.address));
     if (!sameSources) {
         window.location.reload();
         return;
     }
 
+    const rows = new Map();
+    rowElements.forEach(row => {
+        const address = row.dataset.address;
+        if (!rows.has(address)) rows.set(address, []);
+        rows.get(address).push(row);
+    });
+
     data.sources.forEach(source => {
-        const row = rows.get(source.address);
+        const row = rows.get(source.address).shift();
 
         // Update data attributes for countdowns
         const pollCell = row.querySelector('.poll');

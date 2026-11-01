@@ -151,7 +151,7 @@ The dashboard makes no third-party requests, so the CSP allows only `'self'`. It
 fonts come from distro packages and are served at `/fonts/`: JetBrains Mono from
 `fonts-jetbrains-mono`, which the `.deb` recommends, and IBM Plex Sans from
 `fonts-ibm-plex`, which it only suggests because Debian ships it in `contrib`
-(Ubuntu has it in `universe`). Without a package the page uses the system font stack.
+(Ubuntu has it in `multiverse`). Without a package the page uses the system font stack.
 
 If you put a reverse proxy in front of this service, do **not** also set these headers
 there. nginx's `add_header` appends rather than replaces, and a browser given two
