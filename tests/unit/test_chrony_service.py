@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pychrony import (
     ChronyConnectionError,
+    ChronyDataError,
     ChronyPermissionError,
     RTCData,
     Source,
@@ -18,7 +19,14 @@ from pychrony.testing import (
     make_tracking,
 )
 
+import second_hand.services.chrony as chrony_service
 from second_hand.services.chrony import ChronyData, fetch_chrony_data
+
+
+@pytest.fixture(autouse=True)
+def no_rtc_error_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start each test with no RTC error already logged by an earlier one."""
+    monkeypatch.setattr(chrony_service, "_last_rtc_error", None)
 
 
 @pytest.fixture
@@ -200,6 +208,69 @@ class TestFetchChronyData:
         assert result.rtc is None
         assert result.error is None
         assert result.is_connected is True
+
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_rtc_rejected_keeps_the_rest(
+        self,
+        mock_connection_class: MagicMock,
+        mock_tracking: TrackingStatus,
+        mock_sources: list[Source],
+        mock_source_stats: list[SourceStats],
+    ) -> None:
+        """A rejected RTC request leaves only the RTC panel empty."""
+        mock_conn = MagicMock()
+        mock_conn.get_tracking.return_value = mock_tracking
+        mock_conn.get_sources.return_value = mock_sources
+        mock_conn.get_source_stats.return_value = mock_source_stats
+        mock_conn.get_rtc_data.side_effect = ChronyDataError("unauthorized")
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
+
+        result = fetch_chrony_data()
+
+        assert result.tracking == mock_tracking
+        assert result.sources == mock_sources
+        assert result.rtc is None
+        assert result.rtc_error == "unauthorized"
+        assert result.error is None
+
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_repeated_rtc_error_warns_once(
+        self, mock_connection_class: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A lasting RTC fault warns on the first fetch, and again once it recurs."""
+        mock_conn = MagicMock()
+        mock_conn.get_rtc_data.side_effect = ChronyDataError("unauthorized")
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
+        caplog.set_level("WARNING", logger="second_hand.services.chrony")
+
+        fetch_chrony_data()
+        fetch_chrony_data()
+        assert len(caplog.records) == 1
+
+        mock_conn.get_rtc_data.side_effect = None
+        mock_conn.get_rtc_data.return_value = None
+        fetch_chrony_data()
+        mock_conn.get_rtc_data.side_effect = ChronyDataError("unauthorized")
+        fetch_chrony_data()
+        assert len(caplog.records) == 2
+
+    @patch("second_hand.services.chrony.ChronyConnection")
+    def test_rtc_connection_error_reports_disconnected(
+        self,
+        mock_connection_class: MagicMock,
+        mock_tracking: TrackingStatus,
+    ) -> None:
+        """chronyd going silent at the RTC request is a lost connection."""
+        mock_conn = MagicMock()
+        mock_conn.get_tracking.return_value = mock_tracking
+        mock_conn.get_rtc_data.side_effect = ChronyConnectionError("timed out")
+        mock_connection_class.return_value.__enter__.return_value = mock_conn
+
+        result = fetch_chrony_data()
+
+        assert result.tracking is None
+        assert result.error is not None
+        assert result.is_connected is False
 
     @patch("second_hand.services.chrony.ChronyConnection")
     def test_custom_address_passed_to_connection(

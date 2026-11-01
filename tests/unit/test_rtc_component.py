@@ -49,6 +49,14 @@ class TestRtcSection:
 
         assert "not configured" in result.lower()
 
+    def test_rtc_error_is_not_shown_as_not_configured(self) -> None:
+        """An RTC request chronyd rejected must not read as no RTC at all."""
+        result = str(rtc_section(None, "unauthorized"))
+
+        assert "rtc data unavailable" in result.lower()
+        assert "not configured" not in result.lower()
+        assert "unauthorized" not in result
+
     def test_rtc_section_structure(self, mock_rtc: RTCData) -> None:
         """Test RTC section has proper structure."""
         result = str(rtc_section(mock_rtc))

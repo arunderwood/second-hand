@@ -29,7 +29,7 @@ dependencies = [
     "uvicorn>=0.46.0",
     "htpy>=25.10.0",
     "pydantic-settings>=2.7.0",
-    "pychrony>=2.0.0,<3",
+    "pychrony>=3.0.3,<4",
     "cachetools>=7.1.1",
     # Also backs fastapi.testclient.TestClient: starlette.testclient imports
     # httpx2 and only falls back to httpx with a deprecation warning.

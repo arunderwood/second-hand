@@ -13,24 +13,28 @@ from second_hand.utils import (
 )
 
 
-def rtc_section(rtc: RTCData | None) -> Element:
+def rtc_section(rtc: RTCData | None, error: str | None = None) -> Element:
     """Create the RTC data display section.
 
     Displays all RTCData fields: ref_time, samples, runs, span, offset, and freq_offset,
-    or a message indicating RTC is not configured. All labels have tooltips.
+    or a message saying why there are none. All labels have tooltips.
 
     Args:
         rtc: RTCData object from pychrony, or None if unavailable.
+        error: Why chronyd sent no RTC data. None with rtc None means chronyd
+            tracks no RTC.
 
     Returns:
         htpy Element containing the RTC section.
     """
     if rtc is None:
+        # The error itself goes to the log, not to every dashboard viewer.
+        message = (
+            "RTC tracking not configured" if error is None else "RTC data unavailable"
+        )
         return section(".rtc-section")[
             h2(".section-title")["Hardware RTC"],
-            div(".rtc-unavailable")[
-                p(".unavailable-message")["RTC tracking not configured"],
-            ],
+            div(".rtc-unavailable")[p(".unavailable-message")[message]],
         ]
 
     return section(".rtc-section")[

@@ -1,10 +1,12 @@
 """Chrony service for fetching data from chronyd."""
 
+import logging
 from dataclasses import dataclass, field
 
 from pychrony import (
     ChronyConnection,
     ChronyConnectionError,
+    ChronyDataError,
     ChronyLibraryError,
     ChronyPermissionError,
     RTCData,
@@ -16,6 +18,12 @@ from pychrony import (
 from second_hand.config import get_settings
 from second_hand.services.geoip import GeoIPService
 from second_hand.utils import country_code_to_flag
+
+logger = logging.getLogger(__name__)
+
+# The dashboard and /api/sources both fetch on every refresh, so a lasting RTC
+# fault would log once per refresh per open tab. Only a new error is a warning.
+_last_rtc_error: str | None = None
 
 
 @dataclass
@@ -61,6 +69,9 @@ class ChronyData:
     source_stats: list[SourceStats]
     rtc: RTCData | None
     error: str | None
+    # Why chronyd gave no RTC data although it is reachable. None with rtc
+    # None means chronyd tracks no RTC.
+    rtc_error: str | None = None
 
     @property
     def is_connected(self) -> bool:
@@ -96,7 +107,15 @@ def fetch_chrony_data(address: str | None = None) -> ChronyData:
             tracking = conn.get_tracking()
             sources = conn.get_sources()
             source_stats = conn.get_source_stats()
-            rtc = conn.get_rtc_data()  # Returns None if unavailable
+            # A rejected or malformed RTC reply only costs the RTC panel, not
+            # the rest of the dashboard.
+            rtc_error = None
+            try:
+                rtc = conn.get_rtc_data()
+            except ChronyDataError as e:
+                rtc = None
+                rtc_error = str(e)
+            _log_rtc_error(rtc_error)
     except (ChronyConnectionError, ChronyLibraryError):
         return ChronyData(
             tracking=None,
@@ -123,7 +142,19 @@ def fetch_chrony_data(address: str | None = None) -> ChronyData:
         source_stats=source_stats,
         rtc=rtc,
         error=None,
+        rtc_error=rtc_error,
     )
+
+
+def _log_rtc_error(error: str | None) -> None:
+    """Warn about an RTC error unless the previous fetch already reported it."""
+    global _last_rtc_error
+    if error is not None:
+        if error == _last_rtc_error:
+            logger.debug("chronyd RTC data still unavailable: %s", error)
+        else:
+            logger.warning("chronyd RTC data unavailable: %s", error)
+    _last_rtc_error = error
 
 
 async def enrich_sources(
