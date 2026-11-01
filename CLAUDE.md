@@ -15,6 +15,7 @@ src/second_hand/
 ├── __init__.py
 ├── main.py
 ├── config.py
+├── fonts.py
 ├── middleware.py
 ├── presentation.py
 ├── schemas.py

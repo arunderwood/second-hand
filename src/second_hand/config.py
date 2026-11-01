@@ -1,6 +1,7 @@
 """Configuration management for second-hand."""
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,10 @@ class Settings(BaseSettings):
     # port is chrony's read-only channel; the Unix socket is its privileged
     # control channel.
     chrony_address: str = "127.0.0.1:323"
+
+    # Root of the TrueType fonts installed by the Debian font packages; see
+    # second_hand.fonts for the files served from it.
+    fonts_dir: Path = Path("/usr/share/fonts/truetype")
 
     # Security headers
     # HSTS is only meaningful over TLS, so it is disabled by default. Set a

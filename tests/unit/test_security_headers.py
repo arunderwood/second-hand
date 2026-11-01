@@ -100,12 +100,11 @@ class TestContentSecurityPolicy:
         """Each required directive is in the policy."""
         assert directive in CONTENT_SECURITY_POLICY
 
-    def test_allows_google_fonts(self) -> None:
-        """style.css imports Google Fonts, so both hosts must be allowed."""
-        assert (
-            "style-src 'self' https://fonts.googleapis.com" in CONTENT_SECURITY_POLICY
-        )
-        assert "font-src https://fonts.gstatic.com" in CONTENT_SECURITY_POLICY
+    def test_styles_and_fonts_are_same_origin_only(self) -> None:
+        """Fonts are served by the app itself, so no third-party host is allowed."""
+        assert "style-src 'self';" in CONTENT_SECURITY_POLICY
+        assert "font-src 'self';" in CONTENT_SECURITY_POLICY
+        assert "https://" not in CONTENT_SECURITY_POLICY
 
 
 class TestHSTSConfiguration:

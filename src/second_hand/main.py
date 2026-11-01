@@ -17,6 +17,7 @@ from second_hand import __version__
 from second_hand.components import dashboard_page
 from second_hand.components.base import error_page
 from second_hand.config import get_settings
+from second_hand.fonts import router as fonts_router
 from second_hand.middleware import SecurityHeadersMiddleware, build_security_headers
 from second_hand.schemas import ApiError, SourcesResponse
 from second_hand.services.chrony import enrich_sources, fetch_chrony_data
@@ -93,6 +94,8 @@ app.add_middleware(
 # Mount static files if directory exists
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+app.include_router(fonts_router)
 
 
 @app.get("/", response_class=HTMLResponse)

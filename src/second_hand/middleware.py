@@ -21,21 +21,15 @@ __all__ = [
     "build_security_headers",
 ]
 
-# style.css imports Google Fonts, which in turn loads font files from
-# fonts.gstatic.com. Both hosts must be allowed or the dashboard silently
-# falls back to system fonts.
-_GOOGLE_FONTS_CSS = "https://fonts.googleapis.com"
-_GOOGLE_FONTS_FILES = "https://fonts.gstatic.com"
-
 # Deny-by-default policy, widened only where the dashboard actually needs it:
-# an external stylesheet, an external script, same-origin images, and a
-# same-origin fetch() to /api/sources.
+# a same-origin stylesheet, script, fonts and images, and a same-origin
+# fetch() to /api/sources.
 CONTENT_SECURITY_POLICY = "; ".join(
     [
         "default-src 'none'",
         "script-src 'self'",
-        f"style-src 'self' {_GOOGLE_FONTS_CSS}",
-        f"font-src {_GOOGLE_FONTS_FILES}",
+        "style-src 'self'",
+        "font-src 'self'",
         "img-src 'self'",
         "connect-src 'self'",
         "base-uri 'none'",
@@ -50,6 +44,9 @@ CONTENT_SECURITY_POLICY = "; ".join(
 # only in dev mode -- the docs routes do not exist in production.
 _SWAGGER_CDN = "https://cdn.jsdelivr.net"
 _FASTAPI_ASSETS = "https://fastapi.tiangolo.com"
+# FastAPI's ReDoc page links Google Fonts for its own typography.
+_GOOGLE_FONTS_CSS = "https://fonts.googleapis.com"
+_GOOGLE_FONTS_FILES = "https://fonts.gstatic.com"
 
 DOCS_CONTENT_SECURITY_POLICY = "; ".join(
     [
