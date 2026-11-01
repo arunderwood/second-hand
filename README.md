@@ -147,8 +147,11 @@ Every response carries a strict `Content-Security-Policy` (`default-src 'none'`,
 `Strict-Transport-Security` is off by default because the app ships as a plain-HTTP
 service. Enable it via `SECOND_HAND_HSTS_MAX_AGE` once TLS is terminated in front of it.
 
-The CSP allows `fonts.googleapis.com` and `fonts.gstatic.com` because `style.css`
-imports Google Fonts. Remove those directives if the fonts are ever vendored locally.
+The dashboard makes no third-party requests, so the CSP allows only `'self'`. Its
+fonts come from distro packages and are served at `/fonts/`: JetBrains Mono from
+`fonts-jetbrains-mono`, which the `.deb` recommends, and IBM Plex Sans from
+`fonts-ibm-plex`, which it only suggests because Debian ships it in `contrib`
+(Ubuntu has it in `multiverse`). Without a package the page uses the system font stack.
 
 If you put a reverse proxy in front of this service, do **not** also set these headers
 there. nginx's `add_header` appends rather than replaces, and a browser given two

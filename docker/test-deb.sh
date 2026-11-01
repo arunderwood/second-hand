@@ -165,6 +165,26 @@ else
     exit 1
 fi
 
+# The font allowlist hard-codes paths inside the distro font packages. A renamed
+# file in a new release would quietly drop the dashboard to system fonts.
+# fonts-ibm-plex is only checked where the image could install it: Debian keeps
+# it in contrib, which the test images do not enable.
+echo "=== Testing fonts from the distro font packages ==="
+FONTS=(jetbrains-mono-{400,500,600,700})
+if docker exec "$CONTAINER_NAME" dpkg -s fonts-ibm-plex > /dev/null 2>&1; then
+    FONTS+=(ibm-plex-sans-{400,500,600})
+else
+    echo "  fonts-ibm-plex not installed here; skipping IBM Plex Sans"
+fi
+for font in "${FONTS[@]}"; do
+    if docker exec "$CONTAINER_NAME" curl -sf -o /dev/null "http://localhost:8000/fonts/${font}.ttf"; then
+        echo "✓ /fonts/${font}.ttf served"
+    else
+        echo "✗ /fonts/${font}.ttf not served; check the paths in second_hand/fonts.py"
+        exit 1
+    fi
+done
+
 # Verify status is not "Unknown" (which indicates no chrony connection)
 # Note: We can't use greedy grep for "Stratum.*N/A" because htpy outputs HTML
 # on a single line, causing false matches with "N/A" in other stat boxes like Ref IP

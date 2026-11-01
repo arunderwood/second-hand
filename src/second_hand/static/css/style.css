@@ -1,7 +1,51 @@
 /* second-hand Dashboard Styles */
 /* Terminal/Industrial aesthetic - mission control inspired */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+/* Web fonts. A copy installed on the viewer's machine wins; otherwise the
+   server's distro font package is used (see second_hand/fonts.py); otherwise
+   the system stacks in --font-mono / --font-sans take over. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 400;
+  font-display: swap;
+  src: local('JetBrains Mono Regular'), local('JetBrainsMono-Regular'), url('/fonts/jetbrains-mono-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 500;
+  font-display: swap;
+  src: local('JetBrains Mono Medium'), local('JetBrainsMono-Medium'), url('/fonts/jetbrains-mono-500.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 600;
+  font-display: swap;
+  src: local('JetBrains Mono SemiBold'), local('JetBrainsMono-SemiBold'), url('/fonts/jetbrains-mono-600.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 700;
+  font-display: swap;
+  src: local('JetBrains Mono Bold'), local('JetBrainsMono-Bold'), url('/fonts/jetbrains-mono-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 400;
+  font-display: swap;
+  src: local('IBM Plex Sans'), local('IBMPlexSans'), local('IBMPlexSans-Regular'), url('/fonts/ibm-plex-sans-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 500;
+  font-display: swap;
+  src: local('IBM Plex Sans Medium'), local('IBMPlexSans-Medium'), url('/fonts/ibm-plex-sans-500.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 600;
+  font-display: swap;
+  src: local('IBM Plex Sans SemiBold'), local('IBMPlexSans-SemiBold'), url('/fonts/ibm-plex-sans-600.ttf') format('truetype');
+}
 
 :root {
   /* Color palette - industrial greens and ambers */

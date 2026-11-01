@@ -32,6 +32,12 @@ RUN if grep -qs '^Type=notify' /lib/systemd/system/chrony.service \
             > /etc/systemd/system/chrony.service.d/no-notify.conf; \
     fi
 
+# Suggested by the .deb, so not installed with it. Debian keeps it in contrib,
+# which this image does not enable; there the font test skips IBM Plex Sans.
+RUN apt-get update \
+    && (apt-get install -y fonts-ibm-plex || echo "fonts-ibm-plex unavailable") \
+    && rm -rf /var/lib/apt/lists/*
+
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 

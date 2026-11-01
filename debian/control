@@ -14,6 +14,8 @@ Standards-Version: 4.7.0
 Package: second-hand
 Architecture: any
 Depends: ${misc:Depends}, python3 (>= 3.11), python3 (<< 3.16), chrony
+Recommends: fonts-jetbrains-mono
+Suggests: fonts-ibm-plex
 Provides: chrony-dashboard
 Description: Chrony time statistics dashboard
  A web dashboard for monitoring chrony NTP synchronization status.
