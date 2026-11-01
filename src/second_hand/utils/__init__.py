@@ -4,14 +4,14 @@ from datetime import UTC, datetime
 from typing import Literal
 
 __all__ = [
-    "format_offset",
-    "format_duration",
-    "format_reachability",
-    "format_timestamp",
-    "format_frequency",
-    "format_reachability_visual",
-    "get_health_status",
     "country_code_to_flag",
+    "format_duration",
+    "format_frequency",
+    "format_offset",
+    "format_reachability",
+    "format_reachability_visual",
+    "format_timestamp",
+    "get_health_status",
 ]
 
 # Health status thresholds based on industry-standard NTP values

@@ -7,11 +7,11 @@ Content sourced from chrony documentation and NTP best practices.
 from dataclasses import dataclass
 
 __all__ = [
-    "TooltipContent",
-    "TRACKING_TOOLTIPS",
+    "RTC_TOOLTIPS",
     "SOURCE_TOOLTIPS",
     "STATS_TOOLTIPS",
-    "RTC_TOOLTIPS",
+    "TRACKING_TOOLTIPS",
+    "TooltipContent",
 ]
 
 

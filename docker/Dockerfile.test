@@ -1,15 +1,19 @@
 # Dockerfile for integration testing with chronyd
+
+# A FROM stage, not an image in COPY --from: Dependabot's docker parser only
+# reads FROM lines, so this is what keeps the uv tag and digest current.
+FROM ghcr.io/astral-sh/uv:0.13.4@sha256:9f130421e930bfbdc563c00740466603f8723158e90297d07957c2294640262b AS uv
+
 # Uses Debian for Raspbian compatibility
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # Version for hatch-vcs when building without git history
 ARG SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+docker
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 
-# Install chrony and curl (for uv installation)
-RUN apt-get update && apt-get install -y \
+# ca-certificates lets uv download the interpreter pinned in .python-version.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     chrony \
-    curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,9 +27,7 @@ RUN echo "local stratum 10" >> /etc/chrony/chrony.conf && \
     echo "cmdport 0" >> /etc/chrony/chrony.conf && \
     echo "bindcmdaddress /run/chrony/chronyd.sock" >> /etc/chrony/chrony.conf
 
-# Install uv for dependency management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+COPY --from=uv /uv /uvx /bin/
 
 # Set up working directory
 WORKDIR /app
@@ -35,11 +37,9 @@ COPY pyproject.toml uv.lock* README.md .python-version ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install dependencies (uv auto-detects Python 3.14 from .python-version)
-RUN uv sync --all-extras --dev
+# uv picks the interpreter from .python-version; --locked fails on a stale lock.
+RUN uv sync --locked
 
-# Set PYTHONPATH and ensure unbuffered output
-ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
 # Default command runs all tests (integration tests need chronyd started first)

@@ -34,15 +34,16 @@ dependencies = [
     "cachetools>=7.1.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=6.0.0",
     # Backs fastapi.testclient.TestClient. starlette.testclient imports httpx2
     # and only falls back to httpx with a deprecation warning.
     "httpx2>=2.12.0",
-    "ty>=0.0.1a0",
-    "ruff>=0.15.12",
+    "ty>=0.0.89",
+    "ruff>=0.17.0",
+    "zizmor>=1.31.1",
 ]
 
 [project.scripts]
@@ -86,6 +87,9 @@ select = [
     "C4",     # flake8-comprehensions
     "UP",     # pyupgrade
     "SIM",    # flake8-simplify
+    "ASYNC",  # flake8-async
+    "FAST",   # FastAPI
+    "RUF",    # Ruff-specific
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
@@ -95,4 +99,4 @@ ignore = [
 known-first-party = ["second_hand"]
 
 [tool.ty.environment]
-python-version = "3.14"
+python-version = "3.15"

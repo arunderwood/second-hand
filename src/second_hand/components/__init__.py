@@ -16,6 +16,11 @@ from .tooltips import (
 from .tracking import tracking_section
 
 __all__ = [
+    "RTC_TOOLTIPS",
+    "SOURCE_TOOLTIPS",
+    "STATS_TOOLTIPS",
+    "TRACKING_TOOLTIPS",
+    "TooltipContent",
     "base_layout",
     "dashboard_page",
     "error_banner",
@@ -25,9 +30,4 @@ __all__ = [
     "stats_table",
     "tooltip_label",
     "tracking_section",
-    "TooltipContent",
-    "TRACKING_TOOLTIPS",
-    "SOURCE_TOOLTIPS",
-    "STATS_TOOLTIPS",
-    "RTC_TOOLTIPS",
 ]
