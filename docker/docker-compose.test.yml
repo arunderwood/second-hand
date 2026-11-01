@@ -1,11 +1,14 @@
 # Docker Compose configuration for integration testing
 services:
   test-integration:
+    # CI builds this tag with layer caching and runs without --build; locally,
+    # always pass --build (see CLAUDE.md) or a stale image is tested.
+    image: second-hand-test:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
     command: >
       sh -c "chronyd && timeout 10 sh -c 'until [ -S /run/chrony/chronyd.sock ]; do sleep 0.2; done' && uv run pytest tests/integration -v --tb=short"
+    # chronyd adjusts the clock; this is the only privilege it needs.
     cap_add:
       - SYS_TIME
-    privileged: true

@@ -30,13 +30,17 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
+      # --locked fails the job when uv.lock no longer matches pyproject.toml.
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked
 
       - name: Run ruff
         run: |
           uv run ruff check .
           uv run ruff format --check .
+
+      - name: Audit workflows with zizmor
+        run: uv run zizmor --format=github .github/
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -57,15 +61,15 @@ jobs:
         with:
           # Sets UV_PYTHON, which outranks the committed .python-version file.
           # Without this the matrix is inert: `uv python install` only downloads
-          # an interpreter, so every leg resolved to .python-version (3.14).
+          # an interpreter, so every leg resolved to .python-version.
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked
 
       - name: Run type checking
-        # Overrides [tool.ty.environment] python-version, which is pinned to
-        # 3.14 for local development.
+        # Overrides [tool.ty.environment] python-version, which matches
+        # .python-version for local development.
         run: uv run ty check src/ --python-version ${{ matrix.python-version }}
 
       - name: Run tests with coverage
@@ -73,7 +77,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        if: matrix.python-version == '3.14'
+        if: matrix.python-version == '3.15'
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
@@ -91,6 +95,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      # Builds the image the compose service names, with layer caching. The
+      # run step below then uses it as-is, so it must not pass --build.
       - name: Build test image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -102,6 +108,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run integration tests
-        run: |
-          docker run --rm --cap-add=SYS_TIME second-hand-test:latest \
-            sh -c "chronyd && timeout 10 sh -c 'until [ -S /run/chrony/chronyd.sock ]; do sleep 0.2; done' && uv run pytest tests/integration -v --tb=short"
+        run: docker compose -f docker/docker-compose.test.yml run --rm test-integration

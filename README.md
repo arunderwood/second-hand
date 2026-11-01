@@ -71,7 +71,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 ```bash
 git clone https://github.com/arunderwood/second-hand.git
 cd second-hand
-uv sync --all-extras
+uv sync
 uv run uvicorn second_hand.main:app --reload
 ```
 
@@ -167,7 +167,7 @@ dashboard and API keep the strict one either way.
 
 ## Technology Stack
 
-- **Python 3.11+** - Tested on 3.11 through 3.14; development pins 3.14 via `.python-version`
+- **Python 3.11+** - Tested on 3.11 through 3.15; development pins 3.15 via `.python-version`
 - **FastAPI** - Modern async web framework
 - **htpy** - Type-safe HTML generation
 - **uvicorn** - Lightning-fast ASGI server
