@@ -96,7 +96,8 @@ src/second_hand/
 │   └── tracking.py  # Tracking status
 ├── services/
 │   ├── chrony.py    # chronyd queries via pychrony
-│   └── geoip.py     # Source geolocation
+│   ├── geoip.py     # Source geolocation
+│   └── rdns.py      # Source hostname resolution
 └── static/          # Stylesheets, scripts, and images
 debian/              # Debian packaging
 tests/               # Test suite

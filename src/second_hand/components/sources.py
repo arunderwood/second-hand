@@ -48,7 +48,7 @@ def sources_table(sources: list[Source] | list[EnrichedSource]) -> Element:
             thead[
                 tr[
                     th[_header_with_tooltip("Mode", "mode")],
-                    th["Address"],
+                    th[_header_with_tooltip("Address", "address")],
                     th[_header_with_tooltip("State", "state")],
                     th[_header_with_tooltip("Stratum", "stratum")],
                     th[_header_with_tooltip("Poll", "poll")],
@@ -142,7 +142,6 @@ def _source_row(source: Source | EnrichedSource) -> Element:
 
     # Get display name from source
     if isinstance(source, EnrichedSource):
-        display_name = source.display_name
         # Add country flag if available
         address_content: list[Element | str] = []
         if source.country_flag:
@@ -152,10 +151,16 @@ def _source_row(source: Source | EnrichedSource) -> Element:
                     title=source.country_name or "",
                 )[source.country_flag + " "]
             )
-        address_content.append(display_name)
+        # Always rendered so dashboard.js only rewrites its text.
+        address_content.append(
+            span(
+                ".source-name",
+                title=raw_source.address if source.hostname else None,
+            )[source.display_name]
+        )
         address_cell = td(".address")[address_content]
     else:
-        address_cell = td(".address")[raw_source.address]
+        address_cell = td(".address")[span(".source-name")[raw_source.address]]
 
     return tr(row_class, data_address=raw_source.address)[
         td(".mode")[mode_badge],

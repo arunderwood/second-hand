@@ -6,7 +6,22 @@ import pytest
 from fastapi.testclient import TestClient
 
 from second_hand.config import Settings
-from second_hand.main import app
+from second_hand.main import app, get_rdns
+from second_hand.services.rdns import ReverseDNSService
+
+
+@pytest.fixture(autouse=True)
+def offline_rdns() -> Generator[None, None, None]:
+    """Keep every test off a real resolver.
+
+    Reverse DNS resolves private addresses, so without this the route tests
+    query whatever LAN they run on.
+    """
+    app.dependency_overrides[get_rdns] = lambda: ReverseDNSService(None)
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_rdns, None)
 
 
 @pytest.fixture

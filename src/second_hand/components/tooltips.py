@@ -144,7 +144,10 @@ SOURCE_TOOLTIPS: dict[str, TooltipContent] = {
         ),
     ),
     "address": TooltipContent(
-        description="Network address or reference ID of the time source.",
+        description=(
+            "Reverse DNS name, or the address or reference ID if none. "
+            "Hover a name for its address. Names are not verified."
+        ),
     ),
     "stratum": TooltipContent(
         description=(
