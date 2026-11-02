@@ -8,6 +8,7 @@
  * - Poll countdown timers updating every second
  * - "Time since last receive" display updating every second
  * - Auto-refresh of data at the server's SECOND_HAND_REFRESH_INTERVAL
+ * - Hovering a source highlights its row in every table
  * - Progressive enhancement (works without JS)
  *
  * Display strings and row classes come from /api/sources already computed,
@@ -40,10 +41,30 @@ function initDashboard() {
 
     refreshIntervalId = setInterval(refreshData, refreshIntervalSeconds() * 1000);
 
+    initLinkedRowHighlight();
+
     // Run initial update
     updateTimers();
 
     console.log('Dashboard initialized with real-time updates');
+}
+
+/**
+ * Highlight every row for a source while any one of them is hovered.
+ *
+ * Refreshes patch rows in place, so these listeners last as long as the page.
+ */
+function initLinkedRowHighlight() {
+    const rows = [...document.querySelectorAll('tr[data-address]')];
+    const setLinked = (address, linked) => {
+        rows.filter(row => row.dataset.address === address)
+            .forEach(row => row.classList.toggle('row-linked', linked));
+    };
+
+    rows.forEach(row => {
+        row.addEventListener('mouseenter', () => setLinked(row.dataset.address, true));
+        row.addEventListener('mouseleave', () => setLinked(row.dataset.address, false));
+    });
 }
 
 /**
@@ -216,16 +237,7 @@ function updateDashboard(data) {
             lastRxCell.dataset.timestamp = source.last_rx_timestamp;
         }
 
-        // textContent: PTR records are third-party data.
-        const name = row.querySelector('.address .source-name');
-        if (name) {
-            name.textContent = source.display_name;
-            if (source.hostname) {
-                name.title = source.address;
-            } else {
-                name.removeAttribute('title');
-            }
-        }
+        updateSourceName(row, source);
 
         row.classList.remove(...SOURCE_STATE_CLASSES);
         if (source.row_class) {
@@ -250,6 +262,32 @@ function updateDashboard(data) {
 
         updateReachabilityVisual(row, source.reachability_bits);
     });
+
+    // Only the name is live here: the rest of this table is as rendered.
+    const sources = new Map(data.sources.map(source => [source.address, source]));
+    document.querySelectorAll('.stats-row[data-address]').forEach(row => {
+        const source = sources.get(row.dataset.address);
+        if (source) updateSourceName(row, source);
+    });
+}
+
+/**
+ * Show a source's current name in one of its table rows.
+ *
+ * @param {Element} row - Table row element
+ * @param {Object} source - Source from the API
+ */
+function updateSourceName(row, source) {
+    // textContent: PTR records are third-party data.
+    const name = row.querySelector('.address .source-name');
+    if (!name) return;
+
+    name.textContent = source.display_name;
+    if (source.hostname) {
+        name.title = source.address;
+    } else {
+        name.removeAttribute('title');
+    }
 }
 
 /**

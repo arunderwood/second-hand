@@ -5,6 +5,7 @@ from pychrony import SourceStats
 from pychrony.testing import make_source_stats
 
 from second_hand.components.stats import stats_table
+from second_hand.main import STATIC_DIR
 
 
 @pytest.fixture
@@ -117,7 +118,7 @@ class TestReferenceClockLabel:
 
         result = str(stats_table([stats]))
 
-        assert f'<td class="address">{expected}</td>' in result
+        assert f'<span class="source-name">{expected}</span>' in result
 
     def test_unprintable_reference_id_falls_back_to_hex(self) -> None:
         """An addressless row with binary reference ID shows the hex ID."""
@@ -125,7 +126,7 @@ class TestReferenceClockLabel:
 
         result = str(stats_table([stats]))
 
-        assert '<td class="address">C1A3CC71</td>' in result
+        assert '<span class="source-name">C1A3CC71</span>' in result
 
     def test_network_address_is_preferred(self) -> None:
         """A source with an address keeps it, whatever the reference ID says."""
@@ -133,4 +134,51 @@ class TestReferenceClockLabel:
 
         result = str(stats_table([stats]))
 
-        assert '<td class="address">192.168.1.1</td>' in result
+        assert '<span class="source-name">192.168.1.1</span>' in result
+
+
+class TestSourceNames:
+    """Tests for showing resolved hostnames in the statistics table."""
+
+    def test_resolved_source_shows_hostname_with_address_in_title(self) -> None:
+        """A resolved source reads the same here as in the NTP sources table."""
+        stats = make_source_stats(address="8.8.8.8")
+
+        result = str(stats_table([stats], {"8.8.8.8": "dns.google"}))
+
+        assert '<span class="source-name" title="8.8.8.8">dns.google</span>' in result
+
+    def test_unresolved_source_shows_address_without_title(self) -> None:
+        """No PTR record means no title, so no hover affordance either."""
+        stats = make_source_stats(address="192.168.1.1")
+
+        result = str(stats_table([stats], {"8.8.8.8": "dns.google"}))
+
+        assert '<span class="source-name">192.168.1.1</span>' in result
+
+    def test_rows_key_on_the_address_not_the_name(self) -> None:
+        """dashboard.js links this row to the source's by data-address."""
+        stats = make_source_stats(address="8.8.8.8")
+
+        result = str(stats_table([stats], {"8.8.8.8": "dns.google"}))
+
+        assert 'data-address="8.8.8.8"' in result
+        assert 'data-address="dns.google"' not in result
+
+    def test_refclock_row_keys_on_the_name_the_sources_table_uses(self) -> None:
+        """chronyd gives a refclock no address here, but its sources row has one."""
+        stats = make_source_stats(address="", reference_id=0x4E4D4541)
+
+        assert 'data-address="NMEA"' in str(stats_table([stats]))
+
+
+class TestLinkedRowHighlight:
+    """Tests for highlighting a source's rows across tables."""
+
+    def test_linked_row_class_is_styled(self) -> None:
+        """The class dashboard.js puts on linked rows must exist in the stylesheet."""
+        js = (STATIC_DIR / "js" / "dashboard.js").read_text()
+        css = (STATIC_DIR / "css" / "style.css").read_text()
+
+        assert "'row-linked'" in js
+        assert "tr.row-linked" in css
