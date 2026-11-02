@@ -5,8 +5,8 @@ resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version == '3.14.*'",
     "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.13.*' and sys_platform != 'emscripten'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and sys_platform != 'emscripten'",
     "python_full_version < '3.12'",
 ]
@@ -509,12 +509,12 @@ wheels = [
 
 [[package]]
 name = "pex"
-version = "2.105.0"
+version = "2.105.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f4/b2/6a6e1ab4f1287f74200df106eef6f6fca832b5bb0300c84de52de3bbb4ea/pex-2.105.0.tar.gz", hash = "sha256:1d24fbe0bc208183f7fefcff1834ae7527f36235f59cc447d29d0d1ab12518ae", size = 5460820, upload-time = "2026-10-24T17:58:36.603Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/f2/bf703eb311c4f7a9562dc1e9ed4f94fde514d7d8026bc89d713fede54cb8/pex-2.105.1.tar.gz", hash = "sha256:3a1851fc923018a7a8dd1d2e5da4436cfee0e0de9d08fd7aa8354b323328b5ee", size = 5460186, upload-time = "2026-10-24T22:52:05.363Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/ba/9e39efe25140428a7e3c3a95709923fe0956c82a75a260cc054ea991fdca/pex-2.105.0-py2.py35.py36.py37.py38.py39.py310.py311-none-any.whl", hash = "sha256:754967f4e0af3328e9400740c282895faa6675b8c4458e9acad403abffa30a57", size = 4132322, upload-time = "2026-10-24T17:58:32.698Z" },
-    { url = "https://files.pythonhosted.org/packages/bb/cd/b7750d9c09343c8051e605db22be06d0b1495ab447d5676264f1d3db4258/pex-2.105.0-py3.py312-none-any.whl", hash = "sha256:256656699103a7852646ec5c3b0e58417ffbc6a62ce2082d9376e0447a2c463d", size = 1949716, upload-time = "2026-10-24T17:58:34.793Z" },
+    { url = "https://files.pythonhosted.org/packages/18/8c/ecf783789ce5dd65e23107783059f04033a55e9fa47f5d298440b85f3bbd/pex-2.105.1-py2.py35.py36.py37.py38.py39.py310.py311-none-any.whl", hash = "sha256:a252f4b26330001418f485f60e9ff41f18b0c994eceff47504c1503411415933", size = 4130969, upload-time = "2026-10-24T22:52:00.825Z" },
+    { url = "https://files.pythonhosted.org/packages/74/cc/617c1db842665b41bcb90000941930faf3f43b522d728c80e5c74c3848e3/pex-2.105.1-py3.py312-none-any.whl", hash = "sha256:213f63bd2077c2d44880b01d2c23647430930a42259acf85f43d25eaeb74ceb4", size = 1949743, upload-time = "2026-10-24T22:52:03.179Z" },
 ]
 
 [[package]]
