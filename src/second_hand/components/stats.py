@@ -1,15 +1,24 @@
 """Source statistics table component."""
 
+from collections.abc import Mapping
+
 from htpy import Element, div, h2, section, table, tbody, td, th, thead, tr
 from pychrony import SourceStats
 
-from second_hand.components.base import tooltip_label
+from second_hand.components.base import source_name, tooltip_label
 from second_hand.components.tooltips import STATS_TOOLTIPS
 from second_hand.presentation import stats_address_label
-from second_hand.utils import format_duration, format_frequency, format_offset
+from second_hand.utils import (
+    format_duration,
+    format_frequency,
+    format_offset,
+    format_std_dev,
+)
 
 
-def stats_table(source_stats: list[SourceStats]) -> Element:
+def stats_table(
+    source_stats: list[SourceStats], hostnames: Mapping[str, str] | None = None
+) -> Element:
     """Create the source statistics table section.
 
     Displays statistical data for each source including reference ID, samples,
@@ -18,6 +27,7 @@ def stats_table(source_stats: list[SourceStats]) -> Element:
 
     Args:
         source_stats: List of SourceStats objects from pychrony.
+        hostnames: Resolved hostnames by address, shown in place of the address.
 
     Returns:
         htpy Element containing the source stats table section.
@@ -46,7 +56,7 @@ def stats_table(source_stats: list[SourceStats]) -> Element:
                         th[_header_with_tooltip("Skew", "skew")],
                     ]
                 ],
-                tbody[[_stats_row(stats) for stats in source_stats]],
+                tbody[[_stats_row(stats, hostnames or {}) for stats in source_stats]],
             ],
         ],
     ]
@@ -68,33 +78,34 @@ def _header_with_tooltip(text: str, tooltip_key: str) -> Element | str:
     return text
 
 
-def _stats_row(stats: SourceStats) -> Element:
+def _stats_row(stats: SourceStats, hostnames: Mapping[str, str]) -> Element:
     """Create a table row for source statistics.
 
     Args:
         stats: SourceStats object from pychrony.
+        hostnames: Resolved hostnames by address.
 
     Returns:
-        htpy Element for the table row.
+        htpy Element for the table row. ``data-address`` matches the same
+        source's row in the NTP sources table, which dashboard.js relies on.
     """
+    address = stats_address_label(stats)
+
     # Format reference_id as hex
     ref_id_formatted = f"{stats.reference_id:08X}"
 
     # Format span as duration
     span_formatted = format_duration(stats.span)
 
-    # Format std_dev in scientific notation
-    std_dev_formatted = f"{stats.std_dev:.2e}"
-
-    return tr(".stats-row")[
-        td(".address")[stats_address_label(stats)],
+    return tr(".stats-row", data_address=address)[
+        td(".address")[source_name(address, hostnames.get(address))],
         td(".ref-id")[ref_id_formatted],
         td(".samples")[str(stats.samples)],
         td(".runs")[str(stats.runs)],
         td(".span")[span_formatted],
         td(".offset")[format_offset(stats.offset)],
         td(".offset-err")[format_offset(stats.offset_err)],
-        td(".std-dev")[std_dev_formatted],
+        td(".std-dev")[format_std_dev(stats.std_dev)],
         td(".resid-freq")[format_frequency(stats.resid_freq)],
         td(".skew")[format_frequency(stats.skew)],
     ]

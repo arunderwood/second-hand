@@ -8,7 +8,7 @@ import dns.resolver
 import httpx2
 import pytest
 from fastapi.testclient import TestClient
-from pychrony.testing import make_source, make_tracking
+from pychrony.testing import make_source, make_source_stats, make_tracking
 
 from second_hand.main import _build_resolver, app, get_geoip, get_rdns
 from second_hand.services.chrony import ChronyData
@@ -158,6 +158,21 @@ class TestDashboardEndpoint:
 
         assert 'data-address="8.8.8.8"' in response.text
         assert 'data-address="dns.google"' not in response.text
+
+    def test_dashboard_names_source_statistics_like_sources(
+        self,
+        client: TestClient,
+        mock_chrony_sources: ChronyData,
+        geoip_requests: list[str],
+        resolved_hostnames: dict[str, str],
+    ) -> None:
+        """Both tables show the one name resolved for an address."""
+        mock_chrony_sources.source_stats = [make_source_stats(address="8.8.8.8")]
+
+        response = client.get("/")
+
+        name = '<span class="source-name" title="8.8.8.8">dns.google</span>'
+        assert response.text.count(name) == 2
 
 
 class TestSourcesEndpoint:

@@ -10,6 +10,7 @@ __all__ = [
     "format_offset",
     "format_reachability",
     "format_reachability_visual",
+    "format_std_dev",
     "format_timestamp",
     "get_health_status",
 ]
@@ -50,6 +51,21 @@ def format_offset(seconds: float) -> str:
         return f"{seconds * 1_000_000:+.1f} \u00b5s"
     else:
         return f"{seconds * 1_000_000_000:+.0f} ns"
+
+
+def format_std_dev(seconds: float) -> str:
+    """Format a standard deviation on the same scale as ``format_offset``.
+
+    Unsigned: a standard deviation is never negative, so a sign would only
+    suggest a direction it doesn't have.
+
+    Args:
+        seconds: Standard deviation in seconds.
+
+    Returns:
+        Human-readable string with appropriate unit and no sign.
+    """
+    return format_offset(seconds).removeprefix("+")
 
 
 def format_duration(seconds: int) -> str:

@@ -67,7 +67,12 @@ def _main_content(
             # Fall back to raw sources
             sections.append(sources_table(data.sources))
         if data.source_stats:
-            sections.append(stats_table(data.source_stats))
+            hostnames = {
+                es.source.address: es.hostname
+                for es in enriched_sources or []
+                if es.hostname
+            }
+            sections.append(stats_table(data.source_stats, hostnames))
         # RTC section handles None gracefully
         sections.append(rtc_section(data.rtc, data.rtc_error))
 

@@ -18,7 +18,25 @@ from htpy import (
 
 from second_hand.components.tooltips import TooltipContent
 
-__all__ = ["base_layout", "error_page", "tooltip_label"]
+__all__ = ["base_layout", "error_page", "source_name", "tooltip_label"]
+
+
+def source_name(address: str, hostname: str | None = None) -> Element:
+    """Name a source in a table row, as dashboard.js expects to find it.
+
+    Always rendered, even with no hostname, so dashboard.js only rewrites its
+    text.
+
+    Args:
+        address: The source's address, or its label if it has none.
+        hostname: Resolved hostname, shown with the address as its title.
+
+    Returns:
+        htpy Element holding the source's name.
+    """
+    return span(".source-name", title=address if hostname else None)[
+        hostname or address
+    ]
 
 
 def tooltip_label(text: str, tooltip: TooltipContent, *, section: str) -> Element:

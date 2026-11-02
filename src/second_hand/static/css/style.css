@@ -299,6 +299,12 @@ body {
   background-color: var(--color-surface-hover);
 }
 
+/* Stronger than plain hover: it must read on state-tinted rows, and in a table
+   the pointer is not over. */
+.data-table tbody tr.row-linked {
+  background-color: var(--color-border-bright);
+}
+
 /* Numeric alignment in tables */
 .data-table td.stratum,
 .data-table td.samples,

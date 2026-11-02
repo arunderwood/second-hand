@@ -5,7 +5,7 @@ import time
 from htpy import Element, div, h2, section, span, table, tbody, td, th, thead, tr
 from pychrony import Source
 
-from second_hand.components.base import tooltip_label
+from second_hand.components.base import source_name, tooltip_label
 from second_hand.components.tooltips import SOURCE_TOOLTIPS
 from second_hand.presentation import (
     mode_display,
@@ -153,16 +153,10 @@ def _source_row(source: Source | EnrichedSource) -> Element:
                     title=source.country_name or "",
                 )[source.country_flag + " "]
             )
-        # Always rendered so dashboard.js only rewrites its text.
-        address_content.append(
-            span(
-                ".source-name",
-                title=raw_source.address if source.hostname else None,
-            )[source.display_name]
-        )
+        address_content.append(source_name(raw_source.address, source.hostname))
         address_cell = td(".address")[address_content]
     else:
-        address_cell = td(".address")[span(".source-name")[raw_source.address]]
+        address_cell = td(".address")[source_name(raw_source.address)]
 
     return tr(row_class, data_address=raw_source.address)[
         td(".mode")[mode_badge],
