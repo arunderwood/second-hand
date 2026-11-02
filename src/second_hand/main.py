@@ -2,8 +2,10 @@
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from os import PathLike
 from pathlib import Path
 from typing import Annotated, TypedDict
 
@@ -14,6 +16,8 @@ import uvicorn
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
+from starlette.types import Scope
 
 from second_hand import __version__
 from second_hand.components import dashboard_page
@@ -27,6 +31,28 @@ from second_hand.services.geoip import GeoIPService
 from second_hand.services.rdns import LOOKUP_TIMEOUT_SECONDS, ReverseDNSService
 
 logger = logging.getLogger(__name__)
+
+
+class RevalidatedStaticFiles(StaticFiles):
+    """Static files a browser must revalidate before reusing.
+
+    Their URLs don't change between releases. Without this, browsers apply
+    heuristic freshness to Last-Modified and can keep a stylesheet from before a
+    deploy for days, pairing it with the new markup. Unchanged files still cost
+    only a 304.
+    """
+
+    def file_response(
+        self,
+        full_path: str | PathLike[str],
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        response.headers["cache-control"] = "no-cache"
+        return response
+
 
 # Static files directory
 STATIC_DIR = Path(__file__).parent / "static"
@@ -125,7 +151,7 @@ app.add_middleware(
 
 # Mount static files if directory exists
 if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", RevalidatedStaticFiles(directory=STATIC_DIR), name="static")
 
 app.include_router(fonts_router)
 
