@@ -1,5 +1,7 @@
 """Unit tests for chrony service."""
 
+import asyncio
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,7 +22,14 @@ from pychrony.testing import (
 )
 
 import second_hand.services.chrony as chrony_service
-from second_hand.services.chrony import ChronyData, fetch_chrony_data
+from second_hand.services.chrony import (
+    ChronyData,
+    EnrichedSource,
+    enrich_sources,
+    fetch_chrony_data,
+)
+from second_hand.services.geoip import GeoIPResult, GeoIPService
+from second_hand.services.rdns import ReverseDNSResult, ReverseDNSService
 
 
 @pytest.fixture(autouse=True)
@@ -301,3 +310,86 @@ class TestFetchChronyData:
         fetch_chrony_data()
 
         mock_connection_class.assert_called_once_with("127.0.0.1:323")
+
+
+class TestEnrichSources:
+    """Tests for combining GeoIP and reverse DNS onto sources."""
+
+    @staticmethod
+    def _enrich(
+        sources: list[Source],
+        countries: dict[str, str] | None = None,
+        hostnames: dict[str, str] | None = None,
+    ) -> list[EnrichedSource]:
+        """Enrich with stub services that answer from the given mappings."""
+        countries = countries or {}
+        hostnames = hostnames or {}
+
+        class StubGeoIP(GeoIPService):
+            async def lookup(self, ip: str) -> GeoIPResult:
+                code = countries.get(ip)
+                return GeoIPResult(
+                    ip_address=ip,
+                    is_private=code is None,
+                    country_code=code,
+                    country_name="Germany" if code else None,
+                )
+
+        class StubRdns(ReverseDNSService):
+            async def lookup(self, ip: str) -> ReverseDNSResult:
+                return ReverseDNSResult(ip_address=ip, hostname=hostnames.get(ip))
+
+        geoip = StubGeoIP(cast(Any, None))
+        return asyncio.run(enrich_sources(sources, geoip, StubRdns(None)))
+
+    def test_hostname_is_attached(self) -> None:
+        sources = [make_source(address="8.8.8.8")]
+
+        enriched = self._enrich(sources, hostnames={"8.8.8.8": "dns.google"})
+
+        assert enriched[0].hostname == "dns.google"
+        assert enriched[0].display_name == "dns.google"
+
+    def test_unresolved_source_falls_back_to_address(self) -> None:
+        enriched = self._enrich([make_source(address="8.8.8.8")])
+
+        assert enriched[0].hostname is None
+        assert enriched[0].display_name == "8.8.8.8"
+
+    def test_country_and_hostname_are_combined(self) -> None:
+        enriched = self._enrich(
+            [make_source(address="8.8.8.8")],
+            countries={"8.8.8.8": "DE"},
+            hostnames={"8.8.8.8": "dns.google"},
+        )
+
+        assert enriched[0].country_code == "DE"
+        assert enriched[0].country_flag == "\U0001f1e9\U0001f1ea"
+        assert enriched[0].hostname == "dns.google"
+
+    def test_chrony_order_is_preserved(self) -> None:
+        sources = [
+            make_source(address="8.8.8.8"),
+            make_source(address="1.1.1.1"),
+            make_source(address="9.9.9.9"),
+        ]
+
+        enriched = self._enrich(sources, hostnames={"1.1.1.1": "one.one.one.one"})
+
+        assert [e.source.address for e in enriched] == [
+            "8.8.8.8",
+            "1.1.1.1",
+            "9.9.9.9",
+        ]
+        assert [e.hostname for e in enriched] == [None, "one.one.one.one", None]
+
+    def test_duplicate_addresses_both_get_the_name(self) -> None:
+        """chrony can report the same address twice; both rows need the name."""
+        sources = [make_source(address="8.8.8.8"), make_source(address="8.8.8.8")]
+
+        enriched = self._enrich(sources, hostnames={"8.8.8.8": "dns.google"})
+
+        assert [e.hostname for e in enriched] == ["dns.google", "dns.google"]
+
+    def test_no_sources_needs_no_lookups(self) -> None:
+        assert self._enrich([]) == []
