@@ -59,14 +59,19 @@ class TestStatsTable:
         # Offsets should have units (ms or µs)
         assert "ms" in result or "µs" in result
 
-    def test_std_dev_in_scientific_notation(
-        self, mock_source_stats: list[SourceStats]
-    ) -> None:
-        """Test standard deviation is displayed in scientific notation."""
-        result = str(stats_table(mock_source_stats))
+    @pytest.mark.parametrize(
+        ("std_dev", "expected"),
+        [
+            (6.75e-07, "675 ns"),
+            (5.12e-04, "512.0 \u00b5s"),
+            (0.0123, "12.300 ms"),
+        ],
+    )
+    def test_std_dev_formatted_with_units(self, std_dev: float, expected: str) -> None:
+        """Test standard deviation is scaled to a unit, not scientific notation."""
+        result = str(stats_table([make_source_stats(std_dev=std_dev)]))
 
-        # Scientific notation indicator
-        assert "e-" in result.lower()
+        assert f'<td class="std-dev">{expected}</td>' in result
 
     def test_skew_formatted_with_ppm(
         self, mock_source_stats: list[SourceStats]

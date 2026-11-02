@@ -6,7 +6,12 @@ from pychrony import SourceStats
 from second_hand.components.base import tooltip_label
 from second_hand.components.tooltips import STATS_TOOLTIPS
 from second_hand.presentation import stats_address_label
-from second_hand.utils import format_duration, format_frequency, format_offset
+from second_hand.utils import (
+    format_duration,
+    format_frequency,
+    format_offset,
+    format_std_dev,
+)
 
 
 def stats_table(source_stats: list[SourceStats]) -> Element:
@@ -81,9 +86,6 @@ def _stats_row(stats: SourceStats) -> Element:
     # Format span as duration
     span_formatted = format_duration(stats.span)
 
-    # Format std_dev in scientific notation
-    std_dev_formatted = f"{stats.std_dev:.2e}"
-
     return tr(".stats-row")[
         td(".address")[stats_address_label(stats)],
         td(".ref-id")[ref_id_formatted],
@@ -92,7 +94,7 @@ def _stats_row(stats: SourceStats) -> Element:
         td(".span")[span_formatted],
         td(".offset")[format_offset(stats.offset)],
         td(".offset-err")[format_offset(stats.offset_err)],
-        td(".std-dev")[std_dev_formatted],
+        td(".std-dev")[format_std_dev(stats.std_dev)],
         td(".resid-freq")[format_frequency(stats.resid_freq)],
         td(".skew")[format_frequency(stats.skew)],
     ]

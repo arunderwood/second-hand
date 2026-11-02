@@ -6,6 +6,7 @@ from second_hand.utils import (
     format_offset,
     format_reachability,
     format_reachability_visual,
+    format_std_dev,
     format_timestamp,
     get_health_status,
 )
@@ -40,6 +41,25 @@ class TestFormatOffset:
 
     def test_zero_offset(self) -> None:
         assert format_offset(0.0) == "+0 ns"
+
+
+class TestFormatStdDev:
+    """Tests for format_std_dev function."""
+
+    def test_nanoseconds(self) -> None:
+        assert format_std_dev(6.75e-07) == "675 ns"
+
+    def test_microseconds(self) -> None:
+        assert format_std_dev(0.000512) == "512.0 \u00b5s"
+
+    def test_milliseconds(self) -> None:
+        assert format_std_dev(0.0123) == "12.300 ms"
+
+    def test_seconds(self) -> None:
+        assert format_std_dev(1.5) == "1.500 s"
+
+    def test_zero(self) -> None:
+        assert format_std_dev(0.0) == "0 ns"
 
 
 class TestFormatDuration:
