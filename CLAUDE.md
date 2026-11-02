@@ -91,6 +91,12 @@ Python (3.11 is the floor, so no newer syntax): Follow standard conventions with
 - Mock all pychrony interactions using factory functions from `pychrony.testing`
 - Use `@patch` decorators to mock `ChronyConnection` or `fetch_chrony_data`
 
+### Layout Tests
+- `tests/browser` renders the real app and checks that values stay in their boxes, grid rows stay full, tooltips stay on screen and the page never scrolls sideways
+- CI runs them in Chromium, Firefox and WebKit. Locally `LAYOUT_BROWSER` picks one, defaulting to Chromium
+- Without the `browser` group they skip outside CI, so run them explicitly after changing CSS or the number of boxes in a grid:
+  `uv sync --group browser && uv run playwright install chromium && uv run pytest tests/browser`
+
 ### Integration Tests
 - Integration tests MUST run against a real chronyd server when testing pychrony functionality
 - If the connection to chronyd cannot be made, the tests MUST fail (not skip)

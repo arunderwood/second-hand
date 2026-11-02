@@ -51,6 +51,11 @@ dev = [
 build = [
     "pex>=2.105.0",
 ]
+# Runs tests/browser, which CI gives a job of its own. A group of its own too, so
+# the unit test matrix doesn't install a browser driver it never uses.
+browser = [
+    "playwright>=1.50",
+]
 
 [project.scripts]
 second-hand = "second_hand.main:run"
