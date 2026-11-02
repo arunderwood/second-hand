@@ -44,21 +44,23 @@ def sources_table(sources: list[Source] | list[EnrichedSource]) -> Element:
 
     return section(".sources-section")[
         h2(".section-title")["NTP Sources"],
-        table(".data-table")[
-            thead[
-                tr[
-                    th[_header_with_tooltip("Mode", "mode")],
-                    th[_header_with_tooltip("Address", "address")],
-                    th[_header_with_tooltip("State", "state")],
-                    th[_header_with_tooltip("Stratum", "stratum")],
-                    th[_header_with_tooltip("Poll", "poll")],
-                    th[_header_with_tooltip("Reach", "reach")],
-                    th[_header_with_tooltip("Last Rx", "last_rx")],
-                    th[_header_with_tooltip("Latest Meas", "latest_meas")],
-                    th[_header_with_tooltip("Meas Error", "latest_meas_err")],
-                ]
+        div(".table-scroll")[
+            table(".data-table")[
+                thead[
+                    tr[
+                        th[_header_with_tooltip("Mode", "mode")],
+                        th[_header_with_tooltip("Address", "address")],
+                        th[_header_with_tooltip("State", "state")],
+                        th[_header_with_tooltip("Stratum", "stratum")],
+                        th[_header_with_tooltip("Poll", "poll")],
+                        th[_header_with_tooltip("Reach", "reach")],
+                        th[_header_with_tooltip("Last Rx", "last_rx")],
+                        th[_header_with_tooltip("Latest Meas", "latest_meas")],
+                        th[_header_with_tooltip("Meas Error", "latest_meas_err")],
+                    ]
+                ],
+                tbody[[_source_row(source) for source in sources]],
             ],
-            tbody[[_source_row(source) for source in sources]],
         ],
     ]
 

@@ -31,9 +31,10 @@ def tracking_section(data: ChronyData) -> Element:
             h2(".section-title")["Time Synchronization"],
             div(".stats-grid")[
                 _stat_box("Status", "Unknown", status="error"),
-                _stat_box("Offset", "N/A"),
                 _stat_box("Stratum", "N/A"),
                 _stat_box("Reference", "N/A"),
+                _stat_box("Offset", "N/A"),
+                _stat_box_with_tooltip("Ref Time", "N/A", "ref_time", wide=True),
             ],
         ]
 
@@ -55,19 +56,13 @@ def tracking_section(data: ChronyData) -> Element:
     leap_status_name = tracking.leap_status.name.replace("_", " ").title()
     leap_health = _get_leap_health(tracking.leap_status.name)
 
-    # All stats in a single dense grid
+    # Five to a row: the count .stats-grid lays out, and it leaves no row short.
     return section(".tracking-section")[
         h2(".section-title")["Time Synchronization"],
         div(".stats-grid")[
             # Row 1: Primary status
             _stat_box_with_tooltip(
                 "Status", sync_status, "leap_status", status=sync_status_class
-            ),
-            _stat_box_with_tooltip_and_health(
-                "Offset",
-                format_offset(tracking.offset),
-                "offset",
-                get_health_status("offset", tracking.offset),
             ),
             _stat_box_with_tooltip_and_health(
                 "Stratum",
@@ -77,18 +72,16 @@ def tracking_section(data: ChronyData) -> Element:
             ),
             _stat_box_with_tooltip("Reference", reference, "reference"),
             _stat_box_with_tooltip("Ref IP", reference_ip, "reference_ip"),
-            _stat_box_with_tooltip_and_health(
-                "Leap", leap_status_name, "leap_status", leap_health
-            ),
             _stat_box_with_tooltip(
                 "Ref Time", format_timestamp(tracking.ref_time), "ref_time", wide=True
             ),
-            _stat_box_with_tooltip(
-                "Interval",
-                format_duration(int(tracking.update_interval)),
-                "update_interval",
-            ),
             # Row 2: Offset metrics
+            _stat_box_with_tooltip_and_health(
+                "Offset",
+                format_offset(tracking.offset),
+                "offset",
+                get_health_status("offset", tracking.offset),
+            ),
             _stat_box_with_tooltip_and_health(
                 "Last Offset",
                 format_offset(tracking.last_offset),
@@ -113,7 +106,7 @@ def tracking_section(data: ChronyData) -> Element:
                 "root_dispersion",
                 get_health_status("root_dispersion", tracking.root_dispersion),
             ),
-            # Row 3: Frequency metrics
+            # Row 3: Frequency metrics and clock state
             _stat_box_with_tooltip_and_health(
                 "Frequency",
                 format_frequency(tracking.frequency),
@@ -130,6 +123,14 @@ def tracking_section(data: ChronyData) -> Element:
                 format_frequency(tracking.skew),
                 "skew",
                 get_health_status("skew", tracking.skew),
+            ),
+            _stat_box_with_tooltip_and_health(
+                "Leap", leap_status_name, "leap_status", leap_health
+            ),
+            _stat_box_with_tooltip(
+                "Interval",
+                format_duration(int(tracking.update_interval)),
+                "update_interval",
             ),
         ],
     ]
@@ -161,7 +162,8 @@ def _stat_box_with_tooltip(
 ) -> Element:
     """Create a single statistic display box with tooltip.
 
-    ``wide`` gives the box two grid tracks, for a value too long for one.
+    ``wide`` gives the box a full row in the two-column phone layout, for a
+    value too long for one column there.
     """
     attrs: dict[str, str] = {}
     if status:
