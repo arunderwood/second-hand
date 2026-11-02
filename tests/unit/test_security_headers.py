@@ -73,6 +73,22 @@ class TestSecurityHeadersOnApplication:
         assert "strict-transport-security" not in response.headers
 
 
+class TestStaticFileCaching:
+    """A deploy must reach browsers that already hold the previous assets."""
+
+    def test_static_files_must_be_revalidated(self, client: TestClient) -> None:
+        """Unversioned URLs can't be left to heuristic freshness."""
+        response = client.get("/static/css/style.css")
+        assert response.headers["cache-control"] == "no-cache"
+
+    def test_unchanged_file_is_a_304(self, client: TestClient) -> None:
+        """Revalidating stays cheap, and the directive survives the 304."""
+        etag = client.get("/static/css/style.css").headers["etag"]
+        response = client.get("/static/css/style.css", headers={"If-None-Match": etag})
+        assert response.status_code == 304
+        assert response.headers["cache-control"] == "no-cache"
+
+
 class TestContentSecurityPolicy:
     """The policy must be strict but still permit what the dashboard loads."""
 

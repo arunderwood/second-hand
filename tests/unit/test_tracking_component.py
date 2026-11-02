@@ -119,10 +119,9 @@ class TestTrackingSection:
     def test_ref_time_box_is_wide(
         self, mock_tracking_synchronized: TrackingStatus
     ) -> None:
-        """Only the Ref Time box spans two grid tracks.
+        """Only the Ref Time box takes a full row of the two-column phone layout.
 
-        A full timestamp needs about twice the width of every other value, and
-        one track hides its tail under the next box.
+        A full timestamp doesn't fit in one column there.
         """
         data = ChronyData(
             tracking=mock_tracking_synchronized,
@@ -137,3 +136,20 @@ class TestTrackingSection:
         assert result.count('class="stat-box stat-box--wide"') == 1
         wide_box = result.split('class="stat-box stat-box--wide"')[1]
         assert ">Ref Time<" in wide_box[: wide_box.index("stat-value")]
+
+    def test_every_row_of_the_grid_is_full(
+        self, mock_tracking_synchronized: TrackingStatus
+    ) -> None:
+        """Both states fill .stats-grid's five columns, leaving no gap in a row."""
+        for tracking in (mock_tracking_synchronized, None):
+            data = ChronyData(
+                tracking=tracking,
+                sources=[],
+                source_stats=[],
+                rtc=None,
+                error=None,
+            )
+
+            boxes = str(tracking_section(data)).count('class="stat-title"')
+
+            assert boxes % 5 == 0

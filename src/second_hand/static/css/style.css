@@ -176,21 +176,35 @@ body {
   margin-bottom: var(--spacing-xl);
 }
 
-/* Stats grid - tighter, more columns */
-.stats-grid {
+/* Auto tracks size each column to its longest value, so a value can't run under
+   its neighbour. Column counts divide the box counts evenly: a row with a gap
+   would show this background as a solid block. */
+.stats-grid,
+.rtc-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1px;
   background: var(--color-border);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.stats-grid {
+  grid-template-columns: repeat(5, auto);
   margin-bottom: var(--spacing-md);
 }
 
+.rtc-stats {
+  grid-template-columns: repeat(6, auto);
+}
+
 /* Stat box - minimal, dense */
-.stat-box {
+.stat-box,
+.rtc-stat {
   background-color: var(--color-surface);
   padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.stat-box {
   transition: background-color 0.15s ease;
   position: relative;
   overflow: visible;
@@ -200,7 +214,8 @@ body {
   background-color: var(--color-surface-hover);
 }
 
-.stat-title {
+.stat-title,
+.rtc-stat-title {
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -215,18 +230,9 @@ body {
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--terminal-green);
-  white-space: nowrap;
-}
-
-/* A timestamp needs roughly twice the width of every other value in the grid.
-   Two tracks keep it on one line; the wrap is the escape valve for a fallback
-   font wider still, so the text can never end up hidden under the next box. */
-.stat-box--wide {
-  grid-column: span 2;
-}
-
-.stat-box--wide .stat-value {
-  white-space: normal;
+  /* Wraps only when the columns can't all reach full width, as with an IPv6
+     address on a narrow screen; a long token has no other place to break. */
+  overflow-wrap: anywhere;
 }
 
 /* Status-based coloring for stat boxes */
@@ -399,34 +405,12 @@ tr.source-jittery:hover {
    RTC SECTION - Compact grid
    ============================================================================= */
 
-.rtc-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1px;
-  background: var(--color-border);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.rtc-stat {
-  background-color: var(--color-surface);
-  padding: var(--spacing-sm) var(--spacing-md);
-}
-
-.rtc-stat-title {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-2xs);
-}
-
 .rtc-stat-value {
   font-size: 1rem;
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--terminal-green);
+  overflow-wrap: anywhere;
 }
 
 .rtc-unavailable {
@@ -455,10 +439,8 @@ tr.source-jittery:hover {
 
 .tooltip-trigger[data-tooltip]::after {
   content: attr(data-tooltip);
-  position: absolute;
-  bottom: 100%;
-  left: 100%;
-  margin-left: 40px;
+  /* Not visibility: hidden, whose box would still widen the page's scroll area. */
+  display: none;
   background: #1a2a1a;
   color: var(--color-text);
   padding: 8px 12px;
@@ -470,20 +452,15 @@ tr.source-jittery:hover {
   text-transform: none;
   letter-spacing: normal;
   white-space: normal;
-  max-width: 280px;
-  min-width: 180px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
   z-index: 9999;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   line-height: 1.4;
 }
 
-.tooltip-trigger:hover::after {
-  opacity: 1;
-  visibility: visible;
+.tooltip-trigger:hover::after,
+.tooltip-trigger:focus::after {
+  display: block;
 }
 
 .tooltip-trigger:focus {
@@ -491,9 +468,50 @@ tr.source-jittery:hover {
   outline-offset: 2px;
 }
 
-.tooltip-trigger:focus::after {
-  opacity: 1;
-  visibility: visible;
+@media (min-width: 1025px) {
+  .tooltip-trigger[data-tooltip]::after {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 4px;
+    width: max-content;
+    max-width: 280px;
+  }
+
+  /* The last columns open leftward, to stay on screen. */
+  .stat-box:nth-child(5n) .tooltip-trigger::after,
+  .rtc-stat:nth-child(6n) .tooltip-trigger::after,
+  .data-table th:nth-last-child(-n + 3) .tooltip-trigger::after {
+    left: auto;
+    right: 0;
+  }
+
+  /* Headers open downward: above, they'd cover the section title. */
+  .data-table th .tooltip-trigger::after {
+    top: 100%;
+    bottom: auto;
+    margin-top: 4px;
+    margin-bottom: 0;
+  }
+}
+
+/* Fixed to the viewport, because .table-scroll clips anything positioned
+   relative to its header cells. */
+@media (max-width: 1024px) {
+  .tooltip-trigger[data-tooltip]::after {
+    position: fixed;
+    left: var(--spacing-md);
+    right: var(--spacing-md);
+    bottom: var(--spacing-md);
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table-scroll td {
+    white-space: nowrap;
+  }
 }
 
 .data-table th .tooltip-trigger {
@@ -788,8 +806,14 @@ tr.source-selected {
     gap: var(--spacing-xs);
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stats-grid,
+  .rtc-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* A full row for the timestamp; with it, 15 boxes fill two columns evenly. */
+  .stat-box--wide {
+    grid-column: span 2;
   }
 
   .data-table {

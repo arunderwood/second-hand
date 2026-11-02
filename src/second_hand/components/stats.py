@@ -40,22 +40,24 @@ def stats_table(
 
     return section(".stats-section")[
         h2(".section-title")["Source Statistics"],
-        table(".data-table")[
-            thead[
-                tr[
-                    th["Address"],
-                    th[_header_with_tooltip("Ref ID", "reference_id")],
-                    th[_header_with_tooltip("Samples", "samples")],
-                    th[_header_with_tooltip("Runs", "runs")],
-                    th[_header_with_tooltip("Span", "span")],
-                    th[_header_with_tooltip("Offset", "offset")],
-                    th[_header_with_tooltip("Offset Err", "offset_err")],
-                    th[_header_with_tooltip("Std Dev", "std_dev")],
-                    th[_header_with_tooltip("Resid Freq", "resid_freq")],
-                    th[_header_with_tooltip("Skew", "skew")],
-                ]
+        div(".table-scroll")[
+            table(".data-table")[
+                thead[
+                    tr[
+                        th["Address"],
+                        th[_header_with_tooltip("Ref ID", "reference_id")],
+                        th[_header_with_tooltip("Samples", "samples")],
+                        th[_header_with_tooltip("Runs", "runs")],
+                        th[_header_with_tooltip("Span", "span")],
+                        th[_header_with_tooltip("Offset", "offset")],
+                        th[_header_with_tooltip("Offset Err", "offset_err")],
+                        th[_header_with_tooltip("Std Dev", "std_dev")],
+                        th[_header_with_tooltip("Resid Freq", "resid_freq")],
+                        th[_header_with_tooltip("Skew", "skew")],
+                    ]
+                ],
+                tbody[[_stats_row(stats, hostnames or {}) for stats in source_stats]],
             ],
-            tbody[[_stats_row(stats, hostnames or {}) for stats in source_stats]],
         ],
     ]
 
