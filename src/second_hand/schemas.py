@@ -22,8 +22,7 @@ class SourceOut(BaseModel):
 
     address: str
     display_name: str
-    # None when the address has no PTR record. display_name already falls back
-    # to the address; this is what tells the client whether it did.
+    # None when display_name fell back to the address.
     hostname: str | None
     country_code: str | None
     country_name: str | None

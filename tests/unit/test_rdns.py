@@ -1,9 +1,4 @@
-"""Unit tests for the reverse DNS service.
-
-These tests never touch a real resolver: every service is built on a
-``FakeResolver``, so a regression that reintroduces a live query fails rather
-than silently asking the developer's nameserver.
-"""
+"""Unit tests for the reverse DNS service, all against a FakeResolver."""
 
 import asyncio
 import time

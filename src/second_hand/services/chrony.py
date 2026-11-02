@@ -56,13 +56,7 @@ class EnrichedSource:
 
     @property
     def display_name(self) -> str:
-        """Get display name for the source.
-
-        Returns:
-            The resolved hostname, falling back to the address itself. A
-            refclock has no address to resolve, so it shows its reference
-            name ("PPS", "NMEA") either way.
-        """
+        """The resolved hostname, falling back to the address."""
         return self.hostname or self.source.address
 
 
@@ -184,8 +178,7 @@ async def enrich_sources(
     # Extract IP addresses for batch lookup
     ips = [source.address for source in sources]
 
-    # Both batches at once, so a render waits on the slower lookup rather than
-    # on their sum.
+    # Concurrent, so a render waits on the slower lookup, not their sum.
     async with asyncio.TaskGroup() as tg:
         geo_task = tg.create_task(geoip_service.batch_lookup(ips))
         rdns_task = tg.create_task(rdns_service.batch_lookup(ips))

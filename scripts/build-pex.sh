@@ -34,25 +34,13 @@ echo "Building for architecture: $ARCH_SUFFIX"
 uv export --frozen --no-dev --no-editable --format pylock.toml \
     --output-file dist/pylock.toml > /dev/null
 
-# Wheels are selected for each interpreter through a complete platform: the
-# full PEP 508 marker environment plus the list of wheel tags that interpreter
-# accepts. An abbreviated `--platform cp311-...` string cannot do this job. It
-# carries no patch number, so pex leaves python_full_version undefined, and any
-# dependency whose metadata mentions that marker fails the resolve outright --
-# even when the marker only guards an extra that is never installed. Generating
-# the environment from a real interpreter defines every marker, and it also
-# drops the need for --resolve-local-platforms, which only ever supplied a
-# complete environment for the one version the build host happened to run.
+# Complete platforms, not abbreviated `--platform` strings: those carry no
+# patch version, so pex cannot evaluate python_full_version markers and the
+# resolve fails.
 PYTHON_VERSIONS=(3.11 3.12 3.13 3.14 3.15)
 
-# pip's --platform only walked the compatibility ladder for the legacy
-# manylinux2014/2010 prefixes, so manylinux2014 was the one request every
-# dependency matched. A complete platform instead lists the tags outright, and
-# an interpreter reports the ladder its *build host* supports -- up to
-# manylinux_2_39 on Ubuntu 24.04. Shipping wheels chosen that way would leave
-# the .deb broken on Debian 12 (glibc 2.36), so the ladder is trimmed back to
-# the same manylinux2014 ceiling. Keep this in step with the oldest glibc in
-# debian/control's supported distros.
+# An interpreter reports its build host's tag ladder (manylinux_2_39 on Ubuntu
+# 24.04). Trim it to manylinux_2_17 so the .deb still runs on Debian 12.
 MANYLINUX_CEILING=17
 
 echo "Generating complete platforms for: ${PYTHON_VERSIONS[*]}"
@@ -76,8 +64,6 @@ import sys
 source, destination, ceiling = sys.argv[1], sys.argv[2], int(sys.argv[3])
 inspected = json.load(open(source))
 
-# manylinux_2_17 and the manylinux2014 alias for it both stay; anything built
-# against a newer glibc goes.
 too_new = re.compile(r"manylinux_2_(\d+)")
 tags = [
     tag
@@ -104,9 +90,8 @@ done
 # dependency it has no wheel for. debian/control carries the same upper bound
 # on python3 so apt refuses the install instead; change both together.
 #
-# pex runs under the system python3, in a venv of its own so the build never
-# disturbs a developer's .venv. It builds that pip venv with `python3 -m venv`,
-# which on Debian is the separate python3-venv package (Build-Depends).
+# pex runs under the system python3 in its own venv, so a developer's .venv is
+# untouched. That needs python3-venv on Debian (Build-Depends).
 UV_PROJECT_ENVIRONMENT=dist/build-venv \
     uv run --frozen --only-group build --python /usr/bin/python3 \
     pex \

@@ -151,10 +151,7 @@ def _source_row(source: Source | EnrichedSource) -> Element:
                     title=source.country_name or "",
                 )[source.country_flag + " "]
             )
-        # The name span is always present, even when nothing resolved, so
-        # dashboard.js only ever rewrites its text and never builds the cell.
-        # The address goes in the title only when the text is a hostname,
-        # which is also what the hover affordance keys off in CSS.
+        # Always rendered so dashboard.js only rewrites its text.
         address_content.append(
             span(
                 ".source-name",

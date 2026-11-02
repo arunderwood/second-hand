@@ -216,9 +216,7 @@ function updateDashboard(data) {
             lastRxCell.dataset.timestamp = source.last_rx_timestamp;
         }
 
-        // A lookup that lost the race with the first paint lands here instead
-        // of waiting for the next full page load. textContent, not innerHTML:
-        // a PTR record is set by whoever holds the address.
+        // textContent: PTR records are third-party data.
         const name = row.querySelector('.address .source-name');
         if (name) {
             name.textContent = source.display_name;

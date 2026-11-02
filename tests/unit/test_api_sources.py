@@ -13,9 +13,8 @@ from second_hand.main import app
 from second_hand.presentation import mode_display
 from second_hand.services.chrony import ChronyData
 
-# Private addresses keep the GeoIP service off the network. They do not keep
-# reverse DNS off it, which resolves private addresses on purpose; the autouse
-# ``offline_rdns`` fixture in tests/conftest.py is what does that.
+# Private addresses keep GeoIP off the network; conftest's offline_rdns does
+# the same for reverse DNS.
 SOURCES = [
     make_source(
         address="192.168.1.1",

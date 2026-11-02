@@ -145,10 +145,8 @@ SOURCE_TOOLTIPS: dict[str, TooltipContent] = {
     ),
     "address": TooltipContent(
         description=(
-            "Name from the source's PTR record, or its network address or "
-            "reference ID when there is none. Hover a name to see the "
-            "address it resolved from. A PTR record is set by whoever holds "
-            "the address, so the name is its own claim and is not verified."
+            "Reverse DNS name, or the address or reference ID if none. "
+            "Hover a name for its address. Names are not verified."
         ),
     ),
     "stratum": TooltipContent(

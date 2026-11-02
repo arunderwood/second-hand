@@ -40,13 +40,7 @@ class AppState(TypedDict):
 
 
 def _build_resolver() -> dns.asyncresolver.Resolver | None:
-    """Configure a resolver from the system's resolv.conf.
-
-    Returns:
-        The resolver, or None if the host has no usable resolver
-        configuration. A dashboard that shows addresses is worth far more than
-        one that refuses to start, so this never raises.
-    """
+    """Configure a resolver from resolv.conf, or None so startup never fails."""
     try:
         resolver = dns.asyncresolver.Resolver()
     except dns.resolver.NoResolverConfiguration as e:
@@ -61,8 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[AppState]:
     """Own the services that live as long as the application.
 
     The HTTP client is shared by every GeoIP lookup so connections to ipwho.is
-    are pooled, and it is closed on shutdown. The resolver holds no
-    connections of its own and needs no teardown.
+    are pooled, and it is closed on shutdown.
     """
     resolver = _build_resolver()
     async with httpx2.AsyncClient() as client:

@@ -648,9 +648,7 @@ tr.source-jittery:hover {
    SOURCE NAMES
    ============================================================================= */
 
-/* Holds the resolved hostname, or the address when the source has no PTR
-   record. Only a resolved name carries a title, so only it gets the hover
-   affordance and the tooltip rule above. */
+/* Only a resolved name has a title (its address). */
 .source-name[title] {
   cursor: help;
   position: relative;

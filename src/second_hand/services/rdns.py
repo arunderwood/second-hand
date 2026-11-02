@@ -1,9 +1,7 @@
-"""Reverse DNS service for resolving NTP source addresses to hostnames.
+"""Reverse DNS for NTP source addresses, via dnspython's async resolver.
 
-Provides PTR lookups through dnspython's async resolver, which runs on the
-event loop rather than in a thread, so a slow nameserver cannot occupy the
-executor that ``asyncio.to_thread`` uses for chronyd calls. Answers and
-failures are cached separately.
+The resolver runs on the event loop, so a slow nameserver cannot tie up the
+thread pool that chronyd calls use.
 """
 
 import asyncio
@@ -19,23 +17,16 @@ from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
 
-# dnspython enforces this as a deadline for the whole operation, retries
-# included. Its own default is 5 seconds, which is too long to sit in front of
-# a page render.
+# Whole-lookup deadline. dnspython's default of 5s is too slow for a render.
 LOOKUP_TIMEOUT_SECONDS = 2.0
 
 ANSWER_CACHE_TTL_SECONDS = 3600
-
-# A lookup that failed to get any answer is retried sooner than one that
-# succeeded, so a momentary resolver outage does not hide names for an hour.
 FAILURE_CACHE_TTL_SECONDS = 900
 
 MAX_HOSTNAME_LENGTH = 253
 MAX_LABEL_LENGTH = 63
 
-# Letters, digits and inner hyphens only. Punycode ("xn--...") already matches,
-# which is the point: an A-label stays ASCII instead of being rendered as the
-# Unicode it stands for, where homoglyphs could impersonate another name.
+# LDH only. Punycode stays ASCII, so homoglyphs never reach the page.
 _LABEL_PATTERN = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
 
 
@@ -45,8 +36,7 @@ class ReverseDNSResult:
 
     Attributes:
         ip_address: The address that was looked up.
-        hostname: The resolved name, or None if the address has no usable PTR
-            record or the lookup failed.
+        hostname: The resolved name, or None.
     """
 
     ip_address: str
@@ -54,18 +44,11 @@ class ReverseDNSResult:
 
 
 def _clean_hostname(value: object) -> str | None:
-    """Validate a PTR target, returning None if it is not a usable hostname.
-
-    The reverse zone for an address is controlled by whoever holds that
-    address, so a PTR record is third-party data that ends up in the rendered
-    dashboard. Accept only lower-cased LDH names within the DNS length limits.
-
-    Args:
-        value: Raw PTR target, normally a ``dns.name.Name``.
+    """Validate a PTR target, which the address's owner controls.
 
     Returns:
-        The name without its trailing dot, lower-cased, or None if it is empty,
-        over-long, or contains anything but letters, digits and inner hyphens.
+        The lower-cased name without its trailing dot, or None if it is not a
+        valid LDH hostname.
     """
     if value is None:
         return None
@@ -83,9 +66,6 @@ def _clean_hostname(value: object) -> str | None:
 class ReverseDNSService:
     """Resolve addresses to hostnames via PTR records, with caching.
 
-    One instance lives for the life of the application, created in its
-    lifespan around a resolver configured from the system's resolv.conf.
-
     Attributes:
         failure_count: Number of lookups that got no answer at all.
     """
@@ -101,9 +81,7 @@ class ReverseDNSService:
         """Initialize the reverse DNS service.
 
         Args:
-            resolver: Resolver used for every query. None disables the service,
-                which is how a host with no usable resolver configuration still
-                serves the dashboard.
+            resolver: Resolver for every query; None disables lookups.
             cache_ttl: How long an answer is cached, in seconds.
             failure_ttl: How long a failed lookup is cached, in seconds.
             cache_maxsize: Maximum entries in each of the two caches.
@@ -126,8 +104,7 @@ class ReverseDNSService:
         """Look up the hostname for an address.
 
         Args:
-            ip: Address string (IPv4 or IPv6). Anything that is not an address,
-                such as a refclock name, resolves to None without a query.
+            ip: IPv4 or IPv6 address. Refclock names are never queried.
 
         Returns:
             ReverseDNSResult, with hostname None if there is no usable name.
@@ -136,10 +113,7 @@ class ReverseDNSService:
         if cached is not None:
             return cached
 
-        # Private addresses are looked up, unlike in the GeoIP service: a LAN
-        # peer is where a name helps most. It resolves only if the configured
-        # resolver serves that in-addr.arpa zone, since dnspython reads
-        # resolv.conf directly and consults neither /etc/hosts nor nsswitch.
+        # Unlike GeoIP, private addresses are resolved: LAN peers benefit most.
         if self._resolver is None or not self._is_ip(ip):
             return ReverseDNSResult(ip_address=ip, hostname=None)
 
@@ -153,13 +127,11 @@ class ReverseDNSService:
         return result
 
     async def _fetch(self, ip: str) -> tuple[str | None, bool]:
-        """Query the resolver for one address's PTR record.
+        """Query one PTR record.
 
         Returns:
-            The hostname (or None), and whether the resolver answered at all.
-            An address with no PTR record is an answer: NXDOMAIN is as
-            authoritative as a name, so it earns the long cache TTL rather
-            than being retried every few minutes.
+            The hostname or None, and whether the resolver answered. NXDOMAIN
+            counts as an answer, so it gets the long cache TTL.
         """
         assert self._resolver is not None
         try:
@@ -184,10 +156,7 @@ class ReverseDNSService:
         return hostname, True
 
     async def batch_lookup(self, ips: list[str]) -> dict[str, ReverseDNSResult]:
-        """Look up hostnames for multiple addresses concurrently.
-
-        Duplicates are looked up once: concurrent lookups of the same address
-        would all miss the cache and each spend a query.
+        """Look up hostnames concurrently, each distinct address once.
 
         Args:
             ips: List of address strings.
