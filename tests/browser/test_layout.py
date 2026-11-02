@@ -70,7 +70,9 @@ LONG_VALUES = ChronyData(
         reference_ip="2001:0db8:85a3:0000:0000:8a2e:0370:7334",
     ),
     sources=[make_source(address="ntp-stratum2-cluster01.sea.isp.example.net")],
-    source_stats=[make_source_stats()],
+    source_stats=[
+        make_source_stats(address="ntp-stratum2-cluster01.sea.isp.example.net")
+    ],
     rtc=make_rtc_data(),
     error=None,
 )
