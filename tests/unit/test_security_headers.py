@@ -1,5 +1,6 @@
 """Tests for security response headers."""
 
+import re
 from collections.abc import Generator
 from unittest.mock import patch
 
@@ -7,8 +8,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
+from htpy import p
 from pychrony.testing import make_tracking
 
+from second_hand.components.base import base_layout
 from second_hand.config import Settings, get_settings
 from second_hand.middleware import (
     CONTENT_SECURITY_POLICY,
@@ -77,9 +80,19 @@ class TestStaticFileCaching:
     """A deploy must reach browsers that already hold the previous assets."""
 
     def test_static_files_must_be_revalidated(self, client: TestClient) -> None:
-        """Unversioned URLs can't be left to heuristic freshness."""
+        """Static URLs can't be left to heuristic freshness."""
         response = client.get("/static/css/style.css")
         assert response.headers["cache-control"] == "no-cache"
+
+    def test_versioned_urls_serve_the_file(self, client: TestClient) -> None:
+        """The URLs the page links must resolve, version and all."""
+        page = str(base_layout("Test", p["test"]))
+        urls = re.findall(r'"(/static/[^"]+\?v=[^"]+)"', page)
+        assert len(urls) == 2
+        for url in urls:
+            response = client.get(url)
+            assert response.status_code == 200
+            assert response.headers["cache-control"] == "no-cache"
 
     def test_unchanged_file_is_a_304(self, client: TestClient) -> None:
         """Revalidating stays cheap, and the directive survives the 304."""

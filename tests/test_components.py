@@ -11,6 +11,7 @@ from pychrony.testing import (
     make_tracking,
 )
 
+from second_hand import __version__
 from second_hand.components.base import base_layout, error_page
 from second_hand.components.dashboard import dashboard_page
 from second_hand.services.chrony import ChronyData
@@ -65,6 +66,16 @@ class TestBaseLayout:
         page = base_layout("Test", p["test"])
         html = str(page)
         assert "/static/css/style.css" in html
+
+    @pytest.mark.parametrize(
+        "path", ["/static/css/style.css", "/static/js/dashboard.js"]
+    )
+    def test_base_layout_versions_assets(self, path: str) -> None:
+        """A release must change the URLs, so stale browser copies get bypassed."""
+        from htpy import p
+
+        html = str(base_layout("Test", p["test"]))
+        assert f'"{path}?v={__version__}"' in html
 
 
 class TestErrorPage:

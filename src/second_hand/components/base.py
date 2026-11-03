@@ -16,9 +16,19 @@ from htpy import (
     title,
 )
 
+from second_hand import __version__
 from second_hand.components.tooltips import TooltipContent
 
 __all__ = ["base_layout", "error_page", "source_name", "tooltip_label"]
+
+
+def _versioned(url: str) -> str:
+    """Tie an asset's URL to this release.
+
+    A new URL reaches a browser still treating its old copy as fresh, which no
+    response header can: that browser never asks.
+    """
+    return f"{url}?v={__version__}"
 
 
 def source_name(address: str, hostname: str | None = None) -> Element:
@@ -94,12 +104,12 @@ def base_layout(page_title: str, content: Element) -> Element:
             meta(charset="utf-8"),
             meta(name="viewport", content="width=device-width, initial-scale=1"),
             title[page_title],
-            link(rel="stylesheet", href="/static/css/style.css"),
+            link(rel="stylesheet", href=_versioned("/static/css/style.css")),
             link(rel="icon", href="/static/favicon.svg", type="image/svg+xml"),
         ],
         body[
             content,
-            script(src="/static/js/dashboard.js", defer=True),
+            script(src=_versioned("/static/js/dashboard.js"), defer=True),
         ],
     ]
 

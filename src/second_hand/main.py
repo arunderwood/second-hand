@@ -36,10 +36,10 @@ logger = logging.getLogger(__name__)
 class RevalidatedStaticFiles(StaticFiles):
     """Static files a browser must revalidate before reusing.
 
-    Their URLs don't change between releases. Without this, browsers apply
-    heuristic freshness to Last-Modified and can keep a stylesheet from before a
-    deploy for days, pairing it with the new markup. Unchanged files still cost
-    only a 304.
+    A version in the URL only changes when the package is rebuilt, and not every
+    URL has one. Without this, browsers apply heuristic freshness to
+    Last-Modified and can keep a stylesheet for days, pairing it with newer
+    markup. Unchanged files still cost only a 304.
     """
 
     def file_response(
