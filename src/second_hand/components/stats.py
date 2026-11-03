@@ -44,7 +44,7 @@ def stats_table(
             table(".data-table")[
                 thead[
                     tr[
-                        th["Address"],
+                        th[_header_with_tooltip("Address", "address")],
                         th[_header_with_tooltip("Ref ID", "reference_id")],
                         th[_header_with_tooltip("Samples", "samples")],
                         th[_header_with_tooltip("Runs", "runs")],

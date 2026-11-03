@@ -62,7 +62,7 @@ def tracking_section(data: ChronyData) -> Element:
         div(".stats-grid")[
             # Row 1: Primary status
             _stat_box_with_tooltip(
-                "Status", sync_status, "leap_status", status=sync_status_class
+                "Status", sync_status, "sync_status", status=sync_status_class
             ),
             _stat_box_with_tooltip_and_health(
                 "Stratum",
@@ -140,7 +140,7 @@ def _get_leap_health(leap_status_name: str) -> str:
     """Get health status for leap status."""
     if leap_status_name == "NORMAL":
         return "healthy"
-    if leap_status_name == "NOT_SYNCHRONISED":
+    if leap_status_name == "UNSYNC":
         return "error"
     return "warning"
 
