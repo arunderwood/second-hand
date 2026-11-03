@@ -119,6 +119,15 @@ class TestTrackingTooltips:
             assert tooltip.description, f"Empty description for {key}"
             assert len(tooltip.description) > 10, f"Short description for {key}"
 
+    def test_offset_signs_match_chronyc(self) -> None:
+        # chronyc prints a positive current correction as "slow".
+        assert "Positive means the system clock is behind" in (
+            TRACKING_TOOLTIPS["offset"].description
+        )
+        assert "Positive means the local clock was ahead" in (
+            TRACKING_TOOLTIPS["last_offset"].description
+        )
+
     def test_stratum_has_good_bad_values(self) -> None:
         tooltip = TRACKING_TOOLTIPS["stratum"]
         assert tooltip.good_values is not None
@@ -156,6 +165,11 @@ class TestSourceTooltips:
         tooltip = SOURCE_TOOLTIPS["state"]
         # Should describe *, +, -, ?, x, ~ symbols
         assert "*" in tooltip.description or "selected" in tooltip.description.lower()
+
+    def test_state_pairs_labels_with_chronyc_symbols(self) -> None:
+        description = SOURCE_TOOLTIPS["state"].description
+        assert "Unselected (+)" in description
+        assert "Selectable (-)" in description
 
     def test_reach_has_good_bad_values(self) -> None:
         tooltip = SOURCE_TOOLTIPS["reach"]
