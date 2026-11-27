@@ -216,9 +216,6 @@ Thumbs.db
 *.swp
 *.tmp
 
-# hatch-vcs generated version file
-src/second_hand/_version.py
-
 # Debian package build artifacts
 docker/deb-output/
 *.deb
