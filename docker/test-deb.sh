@@ -289,7 +289,39 @@ wait_for_clients_api() {
     echo "✗ /api/clients never matched: $pattern"
     docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/api/clients || true
     docker exec "$CONTAINER_NAME" journalctl -u second-hand-reader --no-pager -n 20 || true
+    clients_diagnostics
     return 1
+}
+
+# What the reader's chronyc actually sees, for failures that only reproduce
+# on some CI runners: chronyc's unix client socket lives in subdirectories it
+# creates under /run/chrony, so sandbox mount state and the host's sysctls
+# both matter.
+clients_diagnostics() {
+    echo "--- diagnostics: environment"
+    uname -a
+    docker exec "$CONTAINER_NAME" sh -c 'sysctl fs.protected_regular fs.protected_fifos fs.protected_symlinks fs.protected_hardlinks 2>/dev/null' || true
+    echo "--- diagnostics: /run/chrony and chrony journal"
+    docker exec "$CONTAINER_NAME" ls -la /run/chrony/ || true
+    docker exec "$CONTAINER_NAME" journalctl -u chrony --no-pager -n 20 || true
+    echo "--- diagnostics: bare chronyc as _chrony (no sandbox)"
+    docker exec "$CONTAINER_NAME" runuser -u _chrony -- chronyc -c -n clients -k; echo "rc=$?"
+    echo "--- diagnostics: chronyc inside a replica of the reader sandbox"
+    docker exec "$CONTAINER_NAME" systemd-run --unit=clients-diag --wait --pipe --quiet \
+        -p User=_chrony -p Group=second-hand-data \
+        -p NoNewPrivileges=yes -p ProtectSystem=strict -p ProtectHome=yes \
+        -p PrivateTmp=yes -p PrivateDevices=yes -p ProtectClock=yes \
+        -p ProtectHostname=yes -p ProtectKernelLogs=yes -p ProtectKernelModules=yes \
+        -p ProtectKernelTunables=yes -p ProtectControlGroups=yes \
+        -p ProtectProc=invisible -p ProcSubset=pid -p RestrictNamespaces=yes \
+        -p RestrictRealtime=yes -p RestrictSUIDSGID=yes -p LockPersonality=yes \
+        -p RemoveIPC=yes -p UMask=0027 -p SystemCallArchitectures=native \
+        -p SystemCallFilter=@system-service -p SystemCallErrorNumber=EPERM \
+        -p CapabilityBoundingSet= -p RestrictAddressFamilies=AF_UNIX \
+        -p IPAddressDeny=any -p RuntimeDirectory=clients-diag \
+        sh -c 'ls -ld /run/chrony; touch /run/chrony/diagprobe 2>&1 && rm -f /run/chrony/diagprobe; chronyc -c -n clients -k; echo "sandboxed chronyc rc=$?"' || true
+    echo "--- diagnostics: effective reader unit properties"
+    docker exec "$CONTAINER_NAME" systemctl show second-hand-reader -p User,ProtectSystem,RestrictAddressFamilies,RuntimeDirectory,NoNewPrivileges --no-pager || true
 }
 
 clients_api_status() {
