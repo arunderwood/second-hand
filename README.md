@@ -99,6 +99,7 @@ which survives package upgrades:
 |---|---|---|
 | `SECOND_HAND_CLIENTS_ENABLED` | `true` | The whole feature: panel, API, and reader. `false` removes client data everywhere and the reader exits immediately. |
 | `SECOND_HAND_CLIENTS_TABLE` | `true` | The per-client table. `false` keeps aggregates and totals but removes individual client addresses from the page and the API. |
+| `SECOND_HAND_CLIENTS_RDNS` | `true` | Reverse DNS names for the listed clients, resolved through this host's own resolver (the address stays visible as the name's tooltip). `false` shows bare addresses and performs no lookups — note that with it on, client addresses are sent to your DNS resolver. |
 | `SECOND_HAND_CLIENTS_MAX_ROWS` | `100` | How many clients the table lists (1–10000), most recently seen first. |
 | `SECOND_HAND_READER_INTERVAL` | `30` | Seconds between the reader's chronyd queries (minimum 10). |
 | `SECOND_HAND_CLIENTS_SNAPSHOT_PATH` | `/run/second-hand-reader/snapshot.json` | Where the dashboard looks for the reader's snapshot; mainly for development setups. |

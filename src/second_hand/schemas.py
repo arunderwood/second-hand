@@ -121,6 +121,10 @@ class ClientOut(ClientRecord):
     poll_display: str
     last_seen_display: str
     nts_ke_display: str
+    # From the host's own resolver (FR-009's one permitted lookup), or None
+    # when the address has no name or reverse DNS is turned off.
+    hostname: str | None = None
+    display_name: str
 
     @classmethod
     def from_record(cls, record: ClientRecord) -> Self:
@@ -130,7 +134,14 @@ class ClientOut(ClientRecord):
             last_seen_display=f"{format_duration(record.last_seen_seconds)} ago",
             # NTS-KE connections are shown where present (FR-005).
             nts_ke_display=(str(record.nts_ke_hits) if record.nts_ke_hits > 0 else "—"),
+            display_name=record.address,
         )
+
+    def apply_hostname(self, hostname: str | None) -> None:
+        """Name this client; the address stays the identity (and the title)."""
+        if hostname:
+            self.hostname = hostname
+            self.display_name = hostname
 
 
 class ClientsResponse(BaseModel):

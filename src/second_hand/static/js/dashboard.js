@@ -360,8 +360,22 @@ function updateClientsTable(panel, data) {
     data.clients.forEach(client => {
         const row = document.createElement('tr');
         row.className = 'client-row';
+
+        // Rendered like the sources table: resolved name as the text, the
+        // address as the title. textContent only: PTR names and addresses
+        // are third-party data.
+        const addressCell = document.createElement('td');
+        addressCell.className = 'client-address';
+        const name = document.createElement('span');
+        name.className = 'source-name';
+        name.textContent = client.display_name;
+        if (client.hostname) {
+            name.title = client.address;
+        }
+        addressCell.appendChild(name);
+        row.appendChild(addressCell);
+
         const cells = [
-            ['client-address', client.address],
             ['client-ntp-hits', client.ntp_hits],
             ['client-ntp-drops', client.ntp_drops],
             ['client-interval', client.poll_display],

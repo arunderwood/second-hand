@@ -83,10 +83,11 @@ class TestClientSettings:
     """The client-visibility settings shared by the dashboard and the reader."""
 
     def test_defaults(self) -> None:
-        """The feature and the per-client table default to on."""
+        """The feature, the per-client table, and naming default to on."""
         settings = Settings()
         assert settings.clients_enabled is True
         assert settings.clients_table is True
+        assert settings.clients_rdns is True
         assert settings.clients_max_rows == 100
         assert str(settings.clients_snapshot_path) == (
             "/run/second-hand-reader/snapshot.json"
@@ -98,6 +99,7 @@ class TestClientSettings:
         env = {
             "SECOND_HAND_CLIENTS_ENABLED": "false",
             "SECOND_HAND_CLIENTS_TABLE": "false",
+            "SECOND_HAND_CLIENTS_RDNS": "false",
             "SECOND_HAND_CLIENTS_MAX_ROWS": "250",
             "SECOND_HAND_CLIENTS_SNAPSHOT_PATH": "/tmp/snapshot.json",
             "SECOND_HAND_READER_INTERVAL": "60",
@@ -106,6 +108,7 @@ class TestClientSettings:
             settings = Settings()
         assert settings.clients_enabled is False
         assert settings.clients_table is False
+        assert settings.clients_rdns is False
         assert settings.clients_max_rows == 250
         assert str(settings.clients_snapshot_path) == "/tmp/snapshot.json"
         assert settings.reader_interval == 60

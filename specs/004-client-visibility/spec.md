@@ -101,7 +101,7 @@ An operator who does not want client addresses or counts shown — for example b
 - **FR-006**: The per-client table MUST be ordered by most recently seen and MUST cap the number of rows displayed, stating how many further clients exist beyond the cap.
 - **FR-007**: The panel MUST make clear that client data is chronyd's rolling log of recently seen clients, and MUST indicate when that log is full and older clients have been dropped.
 - **FR-008**: Client data MUST refresh on the dashboard's existing refresh cycle, and MUST be available from the dashboard's data endpoints in the same way source data is today.
-- **FR-009**: Client addresses MUST be shown as addresses only — no hostname, geolocation, or other third-party lookup is performed on clients.
+- **FR-009**: Clients MUST NOT be enriched through third-party services — no geolocation or other external lookup is performed on client addresses. The one exception is naming: displayed clients are resolved through the host's own reverse DNS, exactly as sources are, on by default and controlled by a dedicated setting; with it off, addresses are shown bare and no lookup of any kind is performed. The address itself MUST remain visible (as the name's title) whenever a name is shown.
 
 **Access and privilege**
 

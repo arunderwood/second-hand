@@ -75,6 +75,22 @@ class TestDataState:
         html = render(clients_truncated=0)
         assert "hidden" in tag_with_class(html, "clients-more")
 
+    def test_hostname_shows_with_address_title(self) -> None:
+        """A named client reads as its name; the address stays as the title."""
+        snapshot = ReaderSnapshot.model_validate(make_snapshot())
+        state = ClientsState(
+            status="ok",
+            reason=None,
+            reason_detail=None,
+            snapshot=snapshot,
+            age_seconds=7,
+            stale=False,
+        )
+        response = ClientsResponse.build(state, table_enabled=True, refresh_interval=30)
+        response.clients[0].apply_hostname("nas.lan")
+        html = str(clients_section(response))
+        assert 'title="192.0.2.17">nas.lan</span>' in html
+
     def test_table_absent_when_disabled(self) -> None:
         html = render(table_enabled=False)
         assert "clients-table-wrap" not in html

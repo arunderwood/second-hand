@@ -17,6 +17,10 @@
 # and the API.
 #SECOND_HAND_CLIENTS_TABLE=true
 
+# Reverse DNS names for the listed clients, resolved through this host's own
+# resolver. Set to false to show bare addresses and perform no lookups.
+#SECOND_HAND_CLIENTS_RDNS=true
+
 # How many clients the per-client table lists (most recently seen first),
 # between 1 and 10000. Clients beyond the cap are still counted.
 #SECOND_HAND_CLIENTS_MAX_ROWS=100

@@ -15,10 +15,26 @@ from fastapi.testclient import TestClient
 
 from second_hand.clients_model import ReaderSnapshot
 from second_hand.config import Settings
-from second_hand.main import app
+from second_hand.main import app, get_rdns
 from second_hand.services.chrony import ChronyData
 from second_hand.services.clients import READER_NOT_RUNNING, ClientsState
+from second_hand.services.rdns import ReverseDNSResult
 from tests.unit.test_clients_model import make_record, make_snapshot
+
+
+class FakeRdns:
+    """Answers batch lookups from a fixed name map and counts the calls."""
+
+    def __init__(self, names: dict[str, str] | None = None) -> None:
+        self.names = names or {}
+        self.calls = 0
+
+    async def batch_lookup(self, ips: list[str]) -> dict[str, ReverseDNSResult]:
+        self.calls += 1
+        return {
+            ip: ReverseDNSResult(ip_address=ip, hostname=self.names.get(ip))
+            for ip in ips
+        }
 
 
 def ok_state(**snapshot_overrides: object) -> ClientsState:
@@ -53,16 +69,24 @@ DISCONNECTED = ChronyData(
 
 @contextmanager
 def serving(
-    state: ClientsState | None, settings: Settings | None = None
+    state: ClientsState | None,
+    settings: Settings | None = None,
+    rdns: FakeRdns | None = None,
 ) -> Iterator[TestClient]:
     """A client whose availability ladder answers ``state``."""
-    with (
-        patch("second_hand.main.get_clients_state", return_value=state),
-        patch("second_hand.main.get_settings", return_value=settings or Settings()),
-        patch("second_hand.main.fetch_chrony_data", return_value=DISCONNECTED),
-        TestClient(app) as client,
-    ):
-        yield client
+    if rdns is not None:
+        app.dependency_overrides[get_rdns] = lambda: rdns
+    try:
+        with (
+            patch("second_hand.main.get_clients_state", return_value=state),
+            patch("second_hand.main.get_settings", return_value=settings or Settings()),
+            patch("second_hand.main.fetch_chrony_data", return_value=DISCONNECTED),
+            TestClient(app) as client,
+        ):
+            yield client
+    finally:
+        if rdns is not None:
+            app.dependency_overrides.pop(get_rdns, None)
 
 
 @pytest.fixture
@@ -157,10 +181,50 @@ class TestTableRedaction:
         assert body["clients_truncated"] == 42
 
 
-class TestNoEnrichment:
-    def test_client_cells_hold_only_the_literal_address(self) -> None:
-        """FR-009: no hostname, geolocation, or flag ever joins a client."""
-        record = make_record(address="2001:db8::1")
-        with serving(ok_state(clients=[record])) as client:
+class TestReverseDns:
+    """FR-009: local reverse DNS names displayed clients, nothing else does."""
+
+    def test_names_applied_to_api_and_page(self) -> None:
+        rdns = FakeRdns({"192.0.2.17": "camera.lan"})
+        with serving(ok_state(), rdns=rdns) as client:
+            body = client.get("/api/clients").json()
             page = client.get("/").text
-        assert '<td class="client-address">2001:db8::1</td>' in page
+        (client_out,) = body["clients"]
+        assert client_out["hostname"] == "camera.lan"
+        assert client_out["display_name"] == "camera.lan"
+        assert client_out["address"] == "192.0.2.17"
+        # The page shows the name with the address as its title.
+        assert 'title="192.0.2.17">camera.lan</span>' in page
+
+    def test_unresolved_address_shows_bare(self) -> None:
+        rdns = FakeRdns({})
+        with serving(ok_state(), rdns=rdns) as client:
+            (client_out,) = client.get("/api/clients").json()["clients"]
+        assert client_out["hostname"] is None
+        assert client_out["display_name"] == "192.0.2.17"
+
+    def test_rdns_off_performs_no_lookups(self) -> None:
+        """The off switch means no queries at all, not just hidden names."""
+        rdns = FakeRdns({"192.0.2.17": "camera.lan"})
+        with serving(ok_state(), Settings(clients_rdns=False), rdns=rdns) as client:
+            body = client.get("/api/clients").json()
+            client.get("/")
+        assert rdns.calls == 0
+        assert body["clients"][0]["display_name"] == "192.0.2.17"
+
+    def test_table_off_performs_no_lookups(self) -> None:
+        """FR-021 redaction leaves nothing to resolve."""
+        rdns = FakeRdns({"192.0.2.17": "camera.lan"})
+        with serving(ok_state(), Settings(clients_table=False), rdns=rdns) as client:
+            client.get("/api/clients")
+        assert rdns.calls == 0
+
+    def test_no_other_enrichment_joins_a_client(self) -> None:
+        """No geolocation, flags, or any third-party data on client rows."""
+        record = make_record(address="2001:db8::1")
+        with serving(ok_state(clients=[record]), rdns=FakeRdns({})) as client:
+            page = client.get("/").text
+        assert (
+            '<td class="client-address"><span class="source-name">2001:db8::1' in page
+        )
+        assert "country-flag" not in page.split("clients-table")[1]

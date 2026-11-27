@@ -13,6 +13,7 @@ from second_hand.clients_model import (
     LastSeenBucket,
     PollIntervalBucket,
 )
+from second_hand.components.base import source_name
 from second_hand.schemas import ClientOut, ClientsResponse
 from second_hand.utils import format_duration
 
@@ -285,7 +286,9 @@ def _clients_table(data: ClientsResponse) -> Element:
 
 def _client_row(client: ClientOut) -> Element:
     return tr(".client-row")[
-        td(".client-address")[client.address],
+        # Same renderer as the sources table: the resolved name shows, the
+        # address stays reachable as the title (FR-009's naming exception).
+        td(".client-address")[source_name(client.address, client.hostname)],
         td(".client-ntp-hits")[str(client.ntp_hits)],
         td(".client-ntp-drops")[str(client.ntp_drops)],
         td(".client-interval")[client.poll_display],

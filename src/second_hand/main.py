@@ -160,8 +160,7 @@ app.include_router(fonts_router)
 def _build_clients_response() -> ClientsResponse | None:
     """Client data for page and API, or None when it must be absent.
 
-    Blocks on the snapshot file and possibly systemctl, so async callers run
-    it in a worker thread.
+    Blocks on the snapshot file, so async callers run it in a worker thread.
     """
     state = get_clients_state()
     if state is None:
@@ -174,6 +173,23 @@ def _build_clients_response() -> ClientsResponse | None:
     )
 
 
+async def _clients_with_hostnames(rdns: ReverseDNSService) -> ClientsResponse | None:
+    """The clients response, with displayed rows named via reverse DNS.
+
+    Lookups happen here, in the web service, never in the reader: its sandbox
+    has no network on purpose. Only the rows being served are resolved, and
+    SECOND_HAND_CLIENTS_RDNS=false skips resolution entirely (FR-009).
+    """
+    clients = await asyncio.to_thread(_build_clients_response)
+    if clients is None or not clients.clients or not get_settings().clients_rdns:
+        return clients
+    results = await rdns.batch_lookup([client.address for client in clients.clients])
+    for client in clients.clients:
+        result = results.get(client.address)
+        client.apply_hostname(result.hostname if result else None)
+    return clients
+
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(geoip: GeoIP, rdns: ReverseDNS) -> str:
     """Render the main dashboard page with enriched source data."""
@@ -184,7 +200,7 @@ async def dashboard(geoip: GeoIP, rdns: ReverseDNS) -> str:
     if chrony_data.sources:
         enriched_sources = await enrich_sources(chrony_data.sources, geoip, rdns)
 
-    clients = await asyncio.to_thread(_build_clients_response)
+    clients = await _clients_with_hostnames(rdns)
 
     return str(
         dashboard_page(
@@ -238,7 +254,7 @@ async def api_sources(geoip: GeoIP, rdns: ReverseDNS) -> SourcesResponse | JSONR
 
 
 @app.get("/api/clients")
-async def api_clients() -> ClientsResponse:
+async def api_clients(rdns: ReverseDNS) -> ClientsResponse:
     """Client visibility data for the Clients panel.
 
     404 when the feature is off (FR-016) or chronyd is remote (FR-020) — the
@@ -246,7 +262,7 @@ async def api_clients() -> ClientsResponse:
     an unavailable body: the dashboard treats it as content (FR-017), and only
     transport failures are errors.
     """
-    clients = await asyncio.to_thread(_build_clients_response)
+    clients = await _clients_with_hostnames(rdns)
     if clients is None:
         raise HTTPException(status_code=404)
     return clients

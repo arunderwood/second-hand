@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # strips per-client records (addresses included) from page and API.
     clients_enabled: bool = True
     clients_table: bool = True
+    # Reverse DNS on the displayed client rows, resolved by the web service
+    # through the host's own resolver (the sandboxed reader has no network).
+    # Off shows bare addresses and performs no lookups at all.
+    clients_rdns: bool = True
     clients_max_rows: int = 100
     clients_snapshot_path: Path = Path("/run/second-hand-reader/snapshot.json")
     # Seconds between the reader's chronyd queries. Only the reader uses it:

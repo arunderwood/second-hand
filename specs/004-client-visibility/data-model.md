@@ -102,6 +102,7 @@ Availability states the dashboard adds (R3 ladder): `reader_not_installed`,
 |---|---|---|
 | `clients_enabled` (`SECOND_HAND_CLIENTS_ENABLED`) | `True` | FR-016 |
 | `clients_table` (`SECOND_HAND_CLIENTS_TABLE`) | `True` | FR-021 |
+| `clients_rdns` (`SECOND_HAND_CLIENTS_RDNS`) | `True` | FR-009; web-service side, displayed rows only |
 | `clients_max_rows` (`SECOND_HAND_CLIENTS_MAX_ROWS`) | `100` | 1–10000 (spec assumption) |
 | `clients_snapshot_path` (`SECOND_HAND_CLIENTS_SNAPSHOT_PATH`) | `/run/second-hand-reader/snapshot.json` | dev installs point it elsewhere |
 | `reader_interval` (`SECOND_HAND_READER_INTERVAL`) | `30` | ≥ 10 (FR-013; reader-only) |
