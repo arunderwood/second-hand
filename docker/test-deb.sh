@@ -20,22 +20,11 @@ READER_SECURITY_THRESHOLD="${READER_SECURITY_THRESHOLD:-45}"
 PLATFORM=$(docker inspect second-hand-deb-test:latest --format '{{.Architecture}}')
 echo "Detected image platform: $PLATFORM"
 
-# This container stands in for a whole host, where processes do not share one
-# AppArmor profile. Under docker-default on newer kernels (seen on GitHub's
-# arm64 runners, kernel 7.x), unix-socket mediation breaks chronyc's client
-# socket in /run/chrony for every process in the container, which no real
-# host does — so run unconfined where AppArmor exists.
-APPARMOR_OPTS=()
-if [ -d /sys/kernel/security/apparmor ]; then
-    APPARMOR_OPTS=(--security-opt apparmor=unconfined)
-fi
-
 echo "Starting systemd container..."
 docker run -d --name "$CONTAINER_NAME" \
     --platform "linux/$PLATFORM" \
     --privileged \
     --cgroupns=host \
-    "${APPARMOR_OPTS[@]}" \
     -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
     second-hand-deb-test:latest
 

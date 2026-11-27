@@ -28,6 +28,13 @@ and `-n` keeps chronyc from reverse-resolving client addresses, which FR-009 for
   process. The read-only rule survives intact: the only mutating form is `clients -r`,
   which the reader never passes, and SC-003's integration test proves reads change nothing.
 
+**Known interaction**: Ubuntu's stock AppArmor profile for chronyd predates fine-grained
+af_unix mediation; on kernels that enforce it (seen on 7.x) the profile denies chronyd's
+replies to chronyc's per-client sockets, so chronyc fails for every non-root user and
+falls back to UDP, where these queries are 501. That is the distro profile's bug, not
+this feature's; on such a host the reader degrades honestly to `permission_denied`. The
+deb-test image disables the chronyd profile for this reason.
+
 **Alternatives considered**:
 - *pychrony extension* (meta/time-style protocol implementation): keeps Principle IV
   literally, but pychrony then owns an officially unstable protocol, and the feature blocks
