@@ -46,7 +46,9 @@ Permissions:
   `RuntimeDirectoryMode=0750`, `UMask=0027` → directory `0750 _chrony:second-hand-data`,
   file `0640 _chrony:second-hand-data`.
 - `second-hand-data` is a static system group created by the package (postinst,
-  `getent group || addgroup --system`). Static groups work with `DynamicUser=` units.
+  `getent group || groupadd --system` — groupadd from the essential passwd package;
+  Ubuntu 26.04 no longer installs adduser by default). Static groups work with
+  `DynamicUser=` units.
 - Web unit adds `SupplementaryGroups=second-hand-data` — read access, no write (file and
   directory are writable only by `_chrony`). Nothing network-facing: it is a filesystem
   path, satisfying FR-012.
