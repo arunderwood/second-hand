@@ -63,9 +63,6 @@ second-hand = "second_hand.main:run"
 [tool.hatch.version]
 source = "vcs"
 
-[tool.hatch.build.hooks.vcs]
-version-file = "src/second_hand/_version.py"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/second_hand"]
 
