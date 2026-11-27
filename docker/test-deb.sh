@@ -20,11 +20,22 @@ READER_SECURITY_THRESHOLD="${READER_SECURITY_THRESHOLD:-45}"
 PLATFORM=$(docker inspect second-hand-deb-test:latest --format '{{.Architecture}}')
 echo "Detected image platform: $PLATFORM"
 
+# This container stands in for a whole host, where processes do not share one
+# AppArmor profile. Under docker-default on newer kernels (seen on GitHub's
+# arm64 runners, kernel 7.x), unix-socket mediation breaks chronyc's client
+# socket in /run/chrony for every process in the container, which no real
+# host does — so run unconfined where AppArmor exists.
+APPARMOR_OPTS=()
+if [ -d /sys/kernel/security/apparmor ]; then
+    APPARMOR_OPTS=(--security-opt apparmor=unconfined)
+fi
+
 echo "Starting systemd container..."
 docker run -d --name "$CONTAINER_NAME" \
     --platform "linux/$PLATFORM" \
     --privileged \
     --cgroupns=host \
+    "${APPARMOR_OPTS[@]}" \
     -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
     second-hand-deb-test:latest
 
@@ -306,6 +317,11 @@ clients_diagnostics() {
     docker exec "$CONTAINER_NAME" journalctl -u chrony --no-pager -n 20 || true
     echo "--- diagnostics: bare chronyc as _chrony (no sandbox)"
     docker exec "$CONTAINER_NAME" runuser -u _chrony -- chronyc -c -n clients -k; echo "rc=$?"
+    echo "--- diagnostics: confinement and denials"
+    docker exec "$CONTAINER_NAME" cat /proc/1/attr/current 2>/dev/null || true
+    sudo dmesg 2>/dev/null | grep -iE 'apparmor|DENIED' | tail -15 || true
+    echo "--- diagnostics: chronyc syscall trace"
+    docker exec "$CONTAINER_NAME" sh -c 'apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq strace >/dev/null 2>&1; runuser -u _chrony -- strace -f -e trace=socket,bind,connect,mkdir chronyc -c -n clients -k 2>&1 | tail -15' || true
     echo "--- diagnostics: chronyc inside a replica of the reader sandbox"
     docker exec "$CONTAINER_NAME" systemd-run --unit=clients-diag --wait --pipe --quiet \
         -p User=_chrony -p Group=second-hand-data \
