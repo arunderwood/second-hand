@@ -84,6 +84,8 @@ exclude_lines = [
 target-version = "py311"
 src = ["src", "tests"]
 line-length = 88
+# Vendored by the Specify CLI; local edits would be overwritten on upgrade.
+extend-exclude = [".specify"]
 
 [tool.ruff.lint]
 select = [
