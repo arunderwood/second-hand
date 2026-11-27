@@ -190,7 +190,7 @@ class TestFailureMapping:
             ("506 Cannot talk to daemon\n", UnavailableReason.CHRONYD_UNREACHABLE),
             (
                 # What a stopped chronyd looks like from inside the hardened
-                # unit, where no UDP fallback is possible (deb harness capture).
+                # unit, where no UDP fallback is possible.
                 "Could not open connection to daemon\n",
                 UnavailableReason.CHRONYD_UNREACHABLE,
             ),

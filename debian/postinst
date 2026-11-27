@@ -7,9 +7,9 @@ case "$1" in
         # not dynamic: the web unit joins it via SupplementaryGroups=, which
         # must resolve at unit start. postrm leaves it behind on purpose —
         # groups are cheap and removal races with running units.
-        # groupadd, not addgroup: adduser is no longer installed by default
-        # on Ubuntu 26.04, while groupadd ships in the essential passwd
-        # package everywhere.
+        # groupadd, not addgroup: Ubuntu 26.04's default install has no
+        # adduser, while groupadd ships in the essential passwd package on
+        # every target distro.
         getent group second-hand-data >/dev/null || \
             groupadd --system second-hand-data
         ;;

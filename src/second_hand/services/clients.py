@@ -31,9 +31,9 @@ READER_UNIT = "second-hand-reader.service"
 
 # The reader unit's state is read from systemd's documented on-disk layout,
 # never over D-Bus: dbus-daemon drops connections from DynamicUser services
-# at the Hello stage (verified on Debian 12), so `systemctl show` cannot be
-# relied on from inside the hardened web unit — and three stat() calls need
-# no subprocess, no bus, and no sandbox allowances at all.
+# at the Hello stage, so no bus query can work from inside this service —
+# and three stat() calls need no subprocess, no bus, and no sandbox
+# allowances at all.
 #
 # Where the packaged (or admin-provided) unit file lives. Merged-/usr distros
 # make /lib a symlink to /usr/lib, so both spellings resolve.

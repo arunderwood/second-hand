@@ -37,7 +37,7 @@ SERVERSTATS_ARGV = ("chronyc", "-c", "serverstats")
 
 SUBPROCESS_TIMEOUT_SECONDS = 10
 
-# chronyc CSV sentinels, verified on chrony 4.3/4.5/4.6.1/4.8: intervals are
+# chronyc's CSV sentinels, identical across chrony 4.3-4.8: intervals are
 # int8 with 127 meaning unknown/none; "seconds since last" is uint32 with the
 # maximum meaning never.
 _INTERVAL_NONE = 127

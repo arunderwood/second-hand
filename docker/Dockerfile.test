@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /run/chrony && chown _chrony:_chrony /run/chrony && chmod 750 /run/chrony
 
 # Configure chronyd for testing (local reference clock + Unix socket).
-# The UDP command port stays open (no "cmdport 0") so the client-visibility
-# integration test can create a monitoring-only client-log entry from ::1 and
-# prove the reader excludes it; pychrony still uses the Unix socket.
+# The UDP command port must stay open: the client-visibility integration
+# test creates a monitoring-only client-log entry from ::1 over it to prove
+# the reader excludes such hosts; pychrony still uses the Unix socket.
 RUN echo "local stratum 10" >> /etc/chrony/chrony.conf && \
     echo "allow 127.0.0.1" >> /etc/chrony/chrony.conf && \
     echo "cmdallow 127.0.0.1" >> /etc/chrony/chrony.conf && \
