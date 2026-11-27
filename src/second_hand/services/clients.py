@@ -7,13 +7,12 @@ malformed, or version-skewed degrades to a rendered state, never a 500.
 
 import ipaddress
 import logging
-import subprocess
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from cachetools.func import ttl_cache
 from pydantic import ValidationError
 
 from second_hand.clients_model import ReaderSnapshot
@@ -23,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "READER_UNIT",
-    "SYSTEMCTL_ARGV",
     "ClientsState",
     "get_clients_state",
     "is_local_chronyd",
@@ -31,16 +29,28 @@ __all__ = [
 
 READER_UNIT = "second-hand-reader.service"
 
-# Fixed argv, read-only unit-property query over D-Bus. Nothing user-controlled
-# is ever passed to subprocess.
-SYSTEMCTL_ARGV = (
-    "systemctl",
-    "show",
-    READER_UNIT,
-    "--property=UnitFileState,ActiveState",
+# The reader unit's state is read from systemd's documented on-disk layout,
+# never over D-Bus: dbus-daemon drops connections from DynamicUser services
+# at the Hello stage (verified on Debian 12), so `systemctl show` cannot be
+# relied on from inside the hardened web unit — and three stat() calls need
+# no subprocess, no bus, and no sandbox allowances at all.
+#
+# Where the packaged (or admin-provided) unit file lives. Merged-/usr distros
+# make /lib a symlink to /usr/lib, so both spellings resolve.
+_UNIT_FILE_PATHS = (
+    Path(f"/usr/lib/systemd/system/{READER_UNIT}"),
+    Path(f"/lib/systemd/system/{READER_UNIT}"),
+    Path(f"/etc/systemd/system/{READER_UNIT}"),
 )
-
-_SYSTEMCTL_TIMEOUT_SECONDS = 5
+# Masking replaces the unit with a symlink to /dev/null, persistently in /etc
+# or at runtime in /run.
+_MASK_PATHS = (
+    Path(f"/etc/systemd/system/{READER_UNIT}"),
+    Path(f"/run/systemd/system/{READER_UNIT}"),
+)
+# Enablement is the [Install] symlink; the unit declares exactly one
+# (WantedBy=multi-user.target), so this path is the whole answer.
+_ENABLED_LINK = Path(f"/etc/systemd/system/multi-user.target.wants/{READER_UNIT}")
 
 # Multiplier over the snapshot's own interval before its data is marked stale
 # (FR-018): three missed cycles.
@@ -81,12 +91,13 @@ def get_clients_state(
        remote server's stats would be misleading.
     3. A readable snapshot -> render it (fresh or stale; the snapshot itself
        may carry the reader's own unavailable reason, FR-017/FR-018).
-    4. No (or invalid) snapshot -> ask systemd why: a deliberately disabled or
-       masked unit is "off" (absent, FR-016 route b); an unknown unit means a
-       non-packaged install (unavailable, FR-019); anything else is a reader
-       that should be publishing but is not (unavailable, FR-017).
+    4. No (or invalid) snapshot -> read the unit's on-disk state: a
+       deliberately disabled or masked unit is "off" (absent, FR-016 route b);
+       a missing unit file means a non-packaged install (unavailable, FR-019);
+       an enabled unit is a reader that should be publishing but is not
+       (unavailable, FR-017).
 
-    The snapshot outranks the unit query so that installs without systemd —
+    The snapshot outranks the unit check so that installs without systemd —
     the dev loop, containers — render data whenever the reader produces it.
     """
     if settings is None:
@@ -110,10 +121,10 @@ def get_clients_state(
             stale=age > STALE_INTERVALS * snapshot.interval,
         )
 
-    unit_file_state = _unit_file_state()
-    if unit_file_state in ("disabled", "masked", "masked-runtime"):
+    unit_state = _reader_unit_state()
+    if unit_state in ("disabled", "masked"):
         return None
-    if unit_file_state:
+    if unit_state == "enabled":
         reason, detail = (
             READER_NOT_RUNNING,
             "the reader service is enabled but has not published any data",
@@ -188,28 +199,28 @@ def _log_snapshot_error(error: str) -> None:
     _last_snapshot_error = error
 
 
-@ttl_cache(maxsize=1, ttl=5.0)
-def _unit_file_state() -> str:
-    """The reader unit's UnitFileState, '' when systemd cannot say.
+def _reader_unit_state() -> Literal["masked", "enabled", "disabled", "not-installed"]:
+    """The reader unit's state, from systemd's on-disk layout.
 
-    '' covers the unit being unknown and systemctl being absent, failing, or
-    timing out — all the shapes a non-packaged install takes (FR-019). Cached
-    briefly so a burst of dashboard requests costs one subprocess.
+    "not-installed" covers every shape a non-packaged install takes — no unit
+    file, no systemd at all (FR-019). A dangling enablement symlink still
+    reads as enabled: the operator's intent is what decides off versus broken.
     """
+    for path in _MASK_PATHS:
+        try:
+            if path.is_symlink() and os.readlink(path) == "/dev/null":
+                return "masked"
+        except OSError:
+            continue
     try:
-        result = subprocess.run(
-            SYSTEMCTL_ARGV,
-            capture_output=True,
-            text=True,
-            timeout=_SYSTEMCTL_TIMEOUT_SECONDS,
-            stdin=subprocess.DEVNULL,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return ""
-    if result.returncode != 0:
-        return ""
-    for line in result.stdout.splitlines():
-        key, _, value = line.partition("=")
-        if key == "UnitFileState":
-            return value.strip()
-    return ""
+        if _ENABLED_LINK.is_symlink() or _ENABLED_LINK.exists():
+            return "enabled"
+    except OSError:
+        pass
+    for path in _UNIT_FILE_PATHS:
+        try:
+            if path.exists():
+                return "disabled"
+        except OSError:
+            continue
+    return "not-installed"

@@ -140,7 +140,15 @@ def _classify_failure(output: str) -> CollectionError:
     lowered = line.lower()
     if line.startswith("501") or "not authorised" in lowered:
         return CollectionError(UnavailableReason.PERMISSION_DENIED, line)
-    if line.startswith("506") or "cannot talk to daemon" in lowered:
+    # "506 Cannot talk to daemon" is the UDP-fallback answer; inside the
+    # hardened unit (AF_UNIX only, IPAddressDeny=any) chronyc cannot even
+    # fall back and says "Could not open connection to daemon" instead.
+    if (
+        line.startswith("506")
+        or "cannot talk to daemon" in lowered
+        or "could not open connection" in lowered
+        or "connection refused" in lowered
+    ):
         return CollectionError(UnavailableReason.CHRONYD_UNREACHABLE, line)
     if line.startswith("519") or "logging is not active" in lowered:
         return CollectionError(UnavailableReason.CLIENT_LOGGING_DISABLED, line)

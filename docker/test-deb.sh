@@ -342,11 +342,10 @@ for _ in range(5):
     s.close()
     time.sleep(0.2)
 '
-wait_for_clients_api '"status":"ok"'
-if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/api/clients | grep -q '"total_clients":0'; then
-    echo "✗ Client traffic was generated but total_clients is 0"
-    exit 1
-fi
+# The reader only sees the traffic on its next cycle, so wait for a non-zero
+# count rather than asserting the instant the first (possibly pre-traffic)
+# snapshot appears.
+wait_for_clients_api '"total_clients":[1-9]'
 echo "✓ /api/clients reports clients after synthetic traffic"
 if docker exec "$CONTAINER_NAME" curl -s http://localhost:8000/ | grep -q "NTP Clients"; then
     echo "✓ Dashboard page renders the Clients panel"
@@ -365,18 +364,22 @@ else
 fi
 
 echo "=== Clients: memory ceilings (SC-004) ==="
+# Anonymous memory, not MemoryCurrent: the cgroup's memory.current counts the
+# page cache of the extracted pex (~50 MB of reclaimable file pages), which
+# says nothing about what the process actually holds.
 check_memory() {
     local unit=$1 limit_mb=$2
-    local bytes
-    bytes=$(docker exec "$CONTAINER_NAME" systemctl show -p MemoryCurrent --value "$unit")
-    if [ -z "$bytes" ] || [ "$bytes" = "[not set]" ]; then
-        echo "  $unit: MemoryCurrent not available, skipping"
+    local cgroup bytes
+    cgroup=$(docker exec "$CONTAINER_NAME" systemctl show -p ControlGroup --value "$unit")
+    bytes=$(docker exec "$CONTAINER_NAME" awk '/^anon /{print $2}' "/sys/fs/cgroup${cgroup}/memory.stat" 2>/dev/null)
+    if [ -z "$bytes" ]; then
+        echo "  $unit: anonymous memory not readable, skipping"
         return 0
     fi
     if [ "$bytes" -lt $((limit_mb * 1024 * 1024)) ]; then
-        echo "✓ $unit uses $((bytes / 1024 / 1024)) MB (< ${limit_mb} MB)"
+        echo "✓ $unit uses $((bytes / 1024 / 1024)) MB anonymous (< ${limit_mb} MB)"
     else
-        echo "✗ $unit uses $((bytes / 1024 / 1024)) MB (ceiling ${limit_mb} MB)"
+        echo "✗ $unit uses $((bytes / 1024 / 1024)) MB anonymous (ceiling ${limit_mb} MB)"
         return 1
     fi
 }

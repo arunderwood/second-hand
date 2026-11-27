@@ -189,6 +189,12 @@ class TestFailureMapping:
             ("501 Not authorised\n", UnavailableReason.PERMISSION_DENIED),
             ("506 Cannot talk to daemon\n", UnavailableReason.CHRONYD_UNREACHABLE),
             (
+                # What a stopped chronyd looks like from inside the hardened
+                # unit, where no UDP fallback is possible (deb harness capture).
+                "Could not open connection to daemon\n",
+                UnavailableReason.CHRONYD_UNREACHABLE,
+            ),
+            (
                 "519 Client logging is not active in the daemon\n",
                 UnavailableReason.CLIENT_LOGGING_DISABLED,
             ),
@@ -198,7 +204,7 @@ class TestFailureMapping:
             ),
             ("something novel\n", UnavailableReason.PARSE_ERROR),
         ],
-        ids=["501", "506", "519", "old-chronyc", "unknown"],
+        ids=["501", "506", "no-socket", "519", "old-chronyc", "unknown"],
     )
     def test_nonzero_exit_classified(
         self, output: str, reason: UnavailableReason

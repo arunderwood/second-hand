@@ -57,8 +57,12 @@ RUN mv /usr/bin/systemctl /usr/bin/systemctl.real \
     && rm -rf /var/lib/apt/lists/* \
     && mv /usr/bin/systemctl.real /usr/bin/systemctl
 
-# Enable services to start on boot (now with real systemctl)
-RUN systemctl enable chrony second-hand
+# Enable services to start on boot (now with real systemctl). The mocked
+# systemctl above also swallowed dh_installsystemd's own enable calls, so
+# every shipped unit must be enabled here. second-hand-reader is tolerated
+# missing: upgrade-test images start from a release that predates it.
+RUN systemctl enable chrony second-hand \
+    && { systemctl enable second-hand-reader || true; }
 
 # Docker's Debian bases ship a policy-rc.d that vetoes every service action, so
 # packages do not start daemons during `docker build`. Past this point the
