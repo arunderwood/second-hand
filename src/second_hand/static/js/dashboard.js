@@ -85,6 +85,7 @@ function refreshIntervalSeconds() {
 function updateTimers() {
     updateCountdowns();
     updateTimeSince();
+    updateClientsAge();
 }
 
 /**
@@ -188,6 +189,212 @@ async function refreshData() {
         console.error('Failed to refresh data:', error);
         lastRefreshFailed = true;
         showStaleWarning();
+    }
+
+    // Independent of sources: a clients failure must not mark source data
+    // stale, and vice versa.
+    try {
+        await refreshClients();
+    } catch (error) {
+        console.error('Failed to refresh client data:', error);
+    }
+}
+
+/**
+ * Tick the "updated Ns ago" line on the Clients panel.
+ * Called every second.
+ */
+function updateClientsAge() {
+    const age = document.querySelector('.clients-age[data-taken-at]');
+    if (!age) return;
+    const takenAt = parseInt(age.dataset.takenAt, 10);
+    if (isNaN(takenAt)) return;
+    const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - takenAt);
+    age.textContent = `updated ${formatDuration(elapsed)} ago`;
+}
+
+/**
+ * Refresh the Clients panel from /api/clients.
+ *
+ * The panel is server-rendered; this updates values in place. Structural
+ * changes (feature toggled, availability state changed, table setting
+ * flipped) reload the page so the server renders the new shape — the same
+ * approach the sources table takes when the source set changes.
+ */
+async function refreshClients() {
+    const panel = document.querySelector('.clients-section');
+    const response = await fetch('/api/clients');
+
+    if (response.status === 404) {
+        // Feature turned off (or chronyd now remote) since this page was
+        // rendered. After the reload the panel is absent and this function
+        // returns early, so no reload loop is possible.
+        if (panel) window.location.reload();
+        return;
+    }
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    if (!panel) {
+        // Feature turned on since render: fetch a page that includes it.
+        window.location.reload();
+        return;
+    }
+
+    const data = await response.json();
+    if (data.status !== panel.dataset.status) {
+        window.location.reload();
+        return;
+    }
+    if (data.status === 'unavailable') {
+        return; // The server-rendered reason line still applies.
+    }
+    const tableWrap = panel.querySelector('.clients-table-wrap');
+    if (Boolean(tableWrap) !== Boolean(data.table_enabled)) {
+        window.location.reload();
+        return;
+    }
+
+    updateClientsPanel(panel, data);
+}
+
+/**
+ * Write fresh client values into the panel.
+ *
+ * @param {Element} panel - The .clients-section element
+ * @param {Object} data - /api/clients response with status "ok"
+ */
+function updateClientsPanel(panel, data) {
+    const age = panel.querySelector('.clients-age');
+    if (age && data.taken_at) {
+        age.dataset.takenAt = data.taken_at;
+    }
+    const staleBadge = panel.querySelector('.clients-stale-badge');
+    if (staleBadge) staleBadge.hidden = !data.stale;
+
+    const summary = data.summary;
+    setClientsField(panel, 'total_clients', summary.total_clients);
+    setClientsField(panel, 'nts_split', `${summary.nts_clients} / ${summary.ntp_clients}`);
+    setClientsField(panel, 'rate_limited_clients', summary.rate_limited_clients);
+    setClientsField(panel, 'total_dropped_requests', summary.total_dropped_requests);
+
+    updateBuckets(panel, 'last_seen', summary.last_seen_buckets);
+    updateBuckets(panel, 'poll_interval', summary.poll_interval_buckets);
+
+    panel.querySelectorAll('[data-totals-field]').forEach(cell => {
+        const value = data.totals[cell.dataset.totalsField];
+        if (value !== undefined) cell.textContent = value;
+    });
+
+    const rollingNote = panel.querySelector('.clients-rolling-note');
+    if (rollingNote) rollingNote.hidden = data.totals.log_records_dropped === 0;
+    const zeroHint = panel.querySelector('.clients-zero-hint');
+    if (zeroHint) zeroHint.hidden = summary.total_clients !== 0;
+
+    if (data.table_enabled) {
+        updateClientsTable(panel, data);
+    }
+}
+
+function setClientsField(panel, field, value) {
+    const element = panel.querySelector(`[data-clients-field="${field}"]`);
+    if (element) element.textContent = value;
+}
+
+/**
+ * Redraw one bucket group's counts and text bars.
+ *
+ * @param {Element} panel - The .clients-section element
+ * @param {string} group - Bucket group name ("last_seen" or "poll_interval")
+ * @param {Object} buckets - Bucket name to count
+ */
+function updateBuckets(panel, group, buckets) {
+    const counts = Object.values(buckets);
+    const scale = Math.max(...counts, 0);
+    for (const [bucket, count] of Object.entries(buckets)) {
+        const bar = panel.querySelector(
+            `[data-bucket-group="${group}"][data-bucket="${CSS.escape(bucket)}"]`);
+        if (bar) bar.textContent = bucketBar(count, scale);
+        const counter = panel.querySelector(
+            `[data-bucket-group="${group}-count"][data-bucket="${CSS.escape(bucket)}"]`);
+        if (counter) counter.textContent = count;
+    }
+}
+
+/**
+ * Ten-cell text bar, matching the server's rendering exactly.
+ *
+ * @param {number} count - This bucket's count
+ * @param {number} scale - The largest count in the group
+ * @returns {string} Bar string
+ */
+function bucketBar(count, scale) {
+    const CELLS = 10;
+    if (scale <= 0 || count <= 0) return '░'.repeat(CELLS);
+    const filled = Math.max(1, Math.round(count / scale * CELLS));
+    return '█'.repeat(filled) + '░'.repeat(CELLS - filled);
+}
+
+/**
+ * Rebuild the per-client table body from the API's display strings.
+ *
+ * textContent only: client addresses are third-party data.
+ *
+ * @param {Element} panel - The .clients-section element
+ * @param {Object} data - /api/clients response with status "ok"
+ */
+function updateClientsTable(panel, data) {
+    const tbody = panel.querySelector('.clients-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (data.clients.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.className = 'clients-table-empty';
+        cell.colSpan = 6;
+        cell.textContent = 'No clients to list';
+        row.appendChild(cell);
+        tbody.appendChild(row);
+    }
+    data.clients.forEach(client => {
+        const row = document.createElement('tr');
+        row.className = 'client-row';
+
+        // Rendered like the sources table: resolved name as the text, the
+        // address as the title. textContent only: PTR names and addresses
+        // are third-party data.
+        const addressCell = document.createElement('td');
+        addressCell.className = 'client-address';
+        const name = document.createElement('span');
+        name.className = 'source-name';
+        name.textContent = client.display_name;
+        if (client.hostname) {
+            name.title = client.address;
+        }
+        addressCell.appendChild(name);
+        row.appendChild(addressCell);
+
+        const cells = [
+            ['client-ntp-hits', client.ntp_hits],
+            ['client-ntp-drops', client.ntp_drops],
+            ['client-interval', client.poll_display],
+            ['client-last-seen', client.last_seen_display],
+            ['client-nts-ke', client.nts_ke_display],
+        ];
+        for (const [className, value] of cells) {
+            const cell = document.createElement('td');
+            cell.className = className;
+            cell.textContent = value;
+            row.appendChild(cell);
+        }
+        tbody.appendChild(row);
+    });
+
+    const more = panel.querySelector('.clients-more');
+    if (more) {
+        more.hidden = data.clients_truncated === 0;
+        more.textContent = `${data.clients_truncated} more clients beyond this list`;
     }
 }
 

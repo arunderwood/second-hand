@@ -6,6 +6,7 @@ case "$1" in
         # CacheDirectory is cleared by `systemctl clean`, not by package removal.
         # DynamicUser= keeps it under /var/cache/private, behind a symlink.
         rm -rf /var/cache/second-hand /var/cache/private/second-hand
+        rm -rf /var/cache/second-hand-reader
         ;;
 esac
 

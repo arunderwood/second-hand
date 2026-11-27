@@ -1,6 +1,7 @@
 """htpy components for the second-hand dashboard."""
 
 from .base import base_layout, error_page, tooltip_label
+from .clients import clients_section
 from .dashboard import dashboard_page
 from .error import error_banner
 from .rtc import rtc_section
@@ -22,6 +23,7 @@ __all__ = [
     "TRACKING_TOOLTIPS",
     "TooltipContent",
     "base_layout",
+    "clients_section",
     "dashboard_page",
     "error_banner",
     "error_page",

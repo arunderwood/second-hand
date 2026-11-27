@@ -1,0 +1,30 @@
+# Configuration for second-hand and second-hand-reader.
+#
+# This file is read by both systemd units (EnvironmentFile=). Settings here
+# survive package upgrades. Uncomment a line to change it; then restart both
+# services:
+#
+#   systemctl restart second-hand second-hand-reader
+
+# The Clients panel and the reader service, as one switch. Set to false to
+# turn off all client visibility: the Clients panel disappears, client data
+# leaves the API, and the reader exits immediately on start.
+# (Alternatively: systemctl disable --now second-hand-reader)
+#SECOND_HAND_CLIENTS_ENABLED=true
+
+# The per-client table only. Set to false to keep the aggregate counts and
+# server totals while removing individual client addresses from both the page
+# and the API.
+#SECOND_HAND_CLIENTS_TABLE=true
+
+# Reverse DNS names for the listed clients, resolved through this host's own
+# resolver. Set to false to show bare addresses and perform no lookups.
+#SECOND_HAND_CLIENTS_RDNS=true
+
+# How many clients the per-client table lists (most recently seen first),
+# between 1 and 10000. Clients beyond the cap are still counted.
+#SECOND_HAND_CLIENTS_MAX_ROWS=100
+
+# Seconds between the reader's chronyd queries, minimum 10. The dashboard
+# marks client data stale after three missed intervals.
+#SECOND_HAND_READER_INTERVAL=30

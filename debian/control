@@ -26,6 +26,8 @@ Description: Chrony time statistics dashboard
   * Time source overview with reachability indicators
   * Source statistics including offset, jitter, and skew
   * RTC (real-time clock) monitoring when available
+  * NTP client visibility via a separate least-privilege reader
+    service (second-hand-reader) that queries chronyd read-only
  .
  Uses a pex executable that works across Python 3.11 to 3.15.
  Runs as a systemd service on port 8000 by default.

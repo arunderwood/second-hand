@@ -37,6 +37,23 @@ class Settings(BaseSettings):
     hsts_max_age: int = 0
     hsts_include_subdomains: bool = True
 
+    # Client visibility: the Clients panel and the second-hand-reader service.
+    # Both processes read the same Settings class, so defaults and validation
+    # have one source of truth. clients_enabled off hides the panel and makes
+    # the reader exit immediately; clients_table off keeps aggregates but
+    # strips per-client records (addresses included) from page and API.
+    clients_enabled: bool = True
+    clients_table: bool = True
+    # Reverse DNS on the displayed client rows, resolved by the web service
+    # through the host's own resolver (the sandboxed reader has no network).
+    # Off shows bare addresses and performs no lookups at all.
+    clients_rdns: bool = True
+    clients_max_rows: int = 100
+    clients_snapshot_path: Path = Path("/run/second-hand-reader/snapshot.json")
+    # Seconds between the reader's chronyd queries. Only the reader uses it:
+    # the query rate must depend on this alone, never on dashboard traffic.
+    reader_interval: int = 30
+
     model_config = SettingsConfigDict(env_prefix="SECOND_HAND_")
 
     @field_validator("port")
@@ -65,6 +82,22 @@ class Settings(BaseSettings):
         """Validate HSTS max-age is non-negative."""
         if v < 0:
             raise ValueError("HSTS max-age must be non-negative")
+        return v
+
+    @field_validator("clients_max_rows")
+    @classmethod
+    def validate_clients_max_rows(cls, v: int) -> int:
+        """Validate the per-client row cap stays within the designed bounds."""
+        if not 1 <= v <= 10000:
+            raise ValueError("clients_max_rows must be between 1 and 10000")
+        return v
+
+    @field_validator("reader_interval")
+    @classmethod
+    def validate_reader_interval(cls, v: int) -> int:
+        """Keep the reader's chronyd query rate low (FR-013)."""
+        if v < 10:
+            raise ValueError("reader_interval must be at least 10 seconds")
         return v
 
 

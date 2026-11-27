@@ -17,9 +17,9 @@ NTS-KE hits > 0). Monitoring-only rows are dropped before this model is built.
 | `address` | str | 1 | IPv4/IPv6 literal, validated as an address; shown as-is (FR-009) |
 | `ntp_hits` | int ≥ 0 | 2 | |
 | `ntp_drops` | int ≥ 0 | 3 | rate-limited/dropped requests |
-| `ntp_interval` | int | 4 | log2 seconds, -1 = unknown (chrony convention) |
-| `ntp_interval_limited` | int | 5 | interval after rate limiting, -1 = none |
-| `last_ntp_seconds` | int ≥ 0 \| None | 6 | seconds since last NTP request |
+| `ntp_interval` | int \| None | 4 | log2 seconds (negative = sub-second), None = unknown; chronyc's CSV sentinel is int8 127, mapped to None by the parser (-1 cannot be the sentinel: 2^-1 is a real half-second interval). Displayed and bucketed as 2^n seconds, rendered "unknown" when None |
+| `ntp_interval_limited` | int \| None | 5 | interval after rate limiting, None = not limited (CSV sentinel 127) |
+| `last_ntp_seconds` | int ≥ 0 \| None | 6 | seconds since last NTP request; chronyc's "never" sentinel is uint32 max, mapped to None |
 | `nts_ke_hits` | int ≥ 0 | 7 | |
 | `nts_ke_drops` | int ≥ 0 | 8 | |
 | `last_nts_ke_seconds` | int ≥ 0 \| None | 10 | |
@@ -41,7 +41,7 @@ Aggregates over **all** qualifying records (not just the published top-N).
 | `rate_limited_clients` | int ≥ 0 | records with `ntp_drops > 0` (FR-003) |
 | `total_dropped_requests` | int ≥ 0 | sum of `ntp_drops` (FR-003) |
 | `last_seen_buckets` | dict[str, int] | keys `1m`, `1h`, `1d`, `older` (FR-002) |
-| `poll_interval_buckets` | dict[str, int] | keys `≤64s`, `≤1024s`, `>1024s`, `unknown` (FR-002) |
+| `poll_interval_buckets` | dict[str, int] | keys `<=64s`, `<=1024s`, `>1024s`, `unknown` — ASCII, exactly as in the snapshot JSON (FR-002) |
 
 Bucket keys are a fixed enum in the model, so the panel and the API never disagree on them.
 
@@ -102,6 +102,7 @@ Availability states the dashboard adds (R3 ladder): `reader_not_installed`,
 |---|---|---|
 | `clients_enabled` (`SECOND_HAND_CLIENTS_ENABLED`) | `True` | FR-016 |
 | `clients_table` (`SECOND_HAND_CLIENTS_TABLE`) | `True` | FR-021 |
+| `clients_rdns` (`SECOND_HAND_CLIENTS_RDNS`) | `True` | FR-009; web-service side, displayed rows only |
 | `clients_max_rows` (`SECOND_HAND_CLIENTS_MAX_ROWS`) | `100` | 1–10000 (spec assumption) |
 | `clients_snapshot_path` (`SECOND_HAND_CLIENTS_SNAPSHOT_PATH`) | `/run/second-hand-reader/snapshot.json` | dev installs point it elsewhere |
 | `reader_interval` (`SECOND_HAND_READER_INTERVAL`) | `30` | ≥ 10 (FR-013; reader-only) |

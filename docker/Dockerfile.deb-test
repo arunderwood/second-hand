@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure chrony for testing (local reference clock)
-RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
+# Configure chrony for testing: local reference clock, and NTP service for
+# loopback so the clients tests can generate real client traffic.
+RUN echo "local stratum 10" >> /etc/chrony/chrony.conf \
+    && echo "allow 127.0.0.1" >> /etc/chrony/chrony.conf
 
 # Ubuntu 26.04's chrony.service skips itself inside containers
 # (ConditionVirtualization=!container). An empty assignment clears the list.
@@ -41,6 +43,7 @@ RUN apt-get update \
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 
+
 # Copy .deb package
 COPY second-hand_*.deb /tmp/
 
@@ -55,8 +58,12 @@ RUN mv /usr/bin/systemctl /usr/bin/systemctl.real \
     && rm -rf /var/lib/apt/lists/* \
     && mv /usr/bin/systemctl.real /usr/bin/systemctl
 
-# Enable services to start on boot (now with real systemctl)
-RUN systemctl enable chrony second-hand
+# Enable services to start on boot (now with real systemctl). The mocked
+# systemctl above also swallowed dh_installsystemd's own enable calls, so
+# every shipped unit must be enabled here. second-hand-reader is tolerated
+# missing: upgrade-test images start from a release that predates it.
+RUN systemctl enable chrony second-hand \
+    && { systemctl enable second-hand-reader || true; }
 
 # Docker's Debian bases ship a policy-rc.d that vetoes every service action, so
 # packages do not start daemons during `docker build`. Past this point the

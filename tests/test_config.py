@@ -79,6 +79,66 @@ class TestSettings:
                 assert Settings().refresh_interval == value
 
 
+class TestClientSettings:
+    """The client-visibility settings shared by the dashboard and the reader."""
+
+    def test_defaults(self) -> None:
+        """The feature, the per-client table, and naming default to on."""
+        settings = Settings()
+        assert settings.clients_enabled is True
+        assert settings.clients_table is True
+        assert settings.clients_rdns is True
+        assert settings.clients_max_rows == 100
+        assert str(settings.clients_snapshot_path) == (
+            "/run/second-hand-reader/snapshot.json"
+        )
+        assert settings.reader_interval == 30
+
+    def test_env_prefix_round_trip(self) -> None:
+        """Every client setting is reachable through SECOND_HAND_* variables."""
+        env = {
+            "SECOND_HAND_CLIENTS_ENABLED": "false",
+            "SECOND_HAND_CLIENTS_TABLE": "false",
+            "SECOND_HAND_CLIENTS_RDNS": "false",
+            "SECOND_HAND_CLIENTS_MAX_ROWS": "250",
+            "SECOND_HAND_CLIENTS_SNAPSHOT_PATH": "/tmp/snapshot.json",
+            "SECOND_HAND_READER_INTERVAL": "60",
+        }
+        with patch.dict(os.environ, env):
+            settings = Settings()
+        assert settings.clients_enabled is False
+        assert settings.clients_table is False
+        assert settings.clients_rdns is False
+        assert settings.clients_max_rows == 250
+        assert str(settings.clients_snapshot_path) == "/tmp/snapshot.json"
+        assert settings.reader_interval == 60
+
+    @pytest.mark.parametrize("value", ["0", "10001"])
+    def test_invalid_max_rows(self, value: str) -> None:
+        """Row caps outside 1-10000 are rejected."""
+        with (
+            patch.dict(os.environ, {"SECOND_HAND_CLIENTS_MAX_ROWS": value}),
+            pytest.raises(ValidationError),
+        ):
+            Settings()
+
+    def test_valid_max_rows_boundaries(self) -> None:
+        """Row caps of 1 and 10000 are valid."""
+        for value in (1, 10000):
+            with patch.dict(os.environ, {"SECOND_HAND_CLIENTS_MAX_ROWS": str(value)}):
+                assert Settings().clients_max_rows == value
+
+    def test_reader_interval_floor(self) -> None:
+        """Intervals under 10 seconds would poll chronyd too aggressively."""
+        with (
+            patch.dict(os.environ, {"SECOND_HAND_READER_INTERVAL": "9"}),
+            pytest.raises(ValidationError),
+        ):
+            Settings()
+        with patch.dict(os.environ, {"SECOND_HAND_READER_INTERVAL": "10"}):
+            assert Settings().reader_interval == 10
+
+
 class TestGetSettings:
     """Tests for get_settings function."""
 

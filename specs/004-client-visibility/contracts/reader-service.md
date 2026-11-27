@@ -8,7 +8,7 @@ R3 ladder rely on.
 - **Entry point**: `python3 second-hand.pex` with `PEX_MODULE=second_hand.reader` (same pex
   as the dashboard; no new artifact).
 - **Loop**: every `SECOND_HAND_READER_INTERVAL` seconds (default 30, min 10, fixed — never
-  scaled by demand, FR-013): run `chronyc -c -k clients` then `chronyc -c serverstats`
+  scaled by demand, FR-013): run `chronyc -c -n clients -k` then `chronyc -c serverstats`
   (fixed argv, no shell, 10 s subprocess timeout), build a `ReaderSnapshot`, publish
   atomically per `reader-snapshot.md`.
 - **Read-only invariant (FR-011)**: the only chronyc subcommands ever invoked are `clients`
@@ -17,11 +17,12 @@ R3 ladder rely on.
 - **Disabled flag**: if `SECOND_HAND_CLIENTS_ENABLED` is false at startup, log one line and
   exit 0 before touching chronyd (FR-016a: unit stays inactive; `Restart=on-failure` does
   not restart a clean exit).
-- **Failure mapping**: chronyc failures become `status=unavailable` snapshots, not crashes:
+- **Failure mapping**: chronyc failures become `status=unavailable` snapshots, not crashes.
+  The signatures are identical on chrony 4.3/4.5/4.6.1/4.8 (captured from real chronyd):
   - `501 Not authorised` → `permission_denied`
-  - connection refused / no socket → `chronyd_unreachable`
-  - unrecognised command / usage error (chrony < 4.0) → `chrony_too_old`
-  - empty/`noclientlog` response → `client_logging_disabled`
+  - `506 Cannot talk to daemon` → `chronyd_unreachable`
+  - invalid option / usage error (chrony < 4.0's chronyc) → `chrony_too_old`
+  - `519 Client logging is not active in the daemon` → `client_logging_disabled`
   - unparseable output → `parse_error`
   The reader exits non-zero only on programming errors; operational failure is data.
 - **Exclusion rule**: rows with `ntp_hits == 0` and `nts_ke_hits == 0` (monitoring-only,

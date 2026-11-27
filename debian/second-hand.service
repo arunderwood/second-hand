@@ -18,6 +18,12 @@ Restart=on-failure
 RestartSec=5
 Environment=SECOND_HAND_HOST=0.0.0.0
 Environment=SECOND_HAND_PORT=8000
+# Shared with second-hand-reader.service: one off switch for both (FR-016).
+EnvironmentFile=-/etc/default/second-hand
+# Read access to the reader's snapshot file (0640 _chrony:second-hand-data),
+# and nothing else: the group grants no path to chronyd's control channel,
+# and the file and its directory stay writable only by _chrony.
+SupplementaryGroups=second-hand-data
 
 # The service user has no home, so pex's default PEX_ROOT is unwritable and the
 # pex would re-extract to a temporary directory on every start. With

@@ -11,6 +11,14 @@ override_dh_auto_build:
 override_dh_auto_install:
 	install -D -m 755 dist/second-hand.pex \
 		debian/second-hand/usr/lib/second-hand/second-hand.pex
+	install -D -m 644 debian/second-hand.default \
+		debian/second-hand/etc/default/second-hand
+
+# The main unit is picked up by name; the reader unit follows the
+# debian/<package>.<name>.service convention and needs the explicit --name.
+override_dh_installsystemd:
+	dh_installsystemd
+	dh_installsystemd --name=second-hand-reader
 
 # Skip dwz compression - pre-compiled binaries from wheels don't have debug sections
 override_dh_dwz:
