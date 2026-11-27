@@ -9,8 +9,10 @@ assessment research (checked against a live chronyd 4.6.1) is reused, not re-ver
 ## R1: Where the reader gets the client log
 
 **Decision**: The reader runs the host's own `chronyc` as a subprocess with a fixed argument
-vector — `chronyc -c -k clients` and `chronyc -c serverstats` — and parses the CSV output.
-Never `-r` (reset), never a shell, never any user-controlled argument.
+vector — `chronyc -c -n clients -k` and `chronyc -c serverstats` — and parses the CSV output.
+Never `-r` (reset), never a shell, never any user-controlled argument. (`-k` is a `clients`
+subcommand flag, not a global option — chrony 4.3–4.8 all reject `chronyc -c -k clients` —
+and `-n` keeps chronyc from reverse-resolving client addresses, which FR-009 forbids.)
 
 **Rationale**:
 - chrony documents the clients/serverstats wire protocol as unstable across versions. The
@@ -70,19 +72,29 @@ A missing snapshot file alone cannot distinguish an operator-disabled reader (pa
 *absent*) from a crashed one (panel must say *unavailable*) from a non-.deb install (also
 *unavailable*).
 
-**Decision**: the dashboard queries systemd read-only with a fixed argv —
-`systemctl show second-hand-reader.service --property=UnitFileState,ActiveState` — cached
-per fetch cycle. Decision ladder, first match wins:
+**Decision**: the dashboard reads the reader unit's state from systemd's documented
+on-disk layout — unit file present under `/usr/lib|/lib|/etc/systemd/system` means
+installed, the `multi-user.target.wants` symlink means enabled, a `/dev/null` symlink
+means masked. No subprocess and no D-Bus: `systemctl show` was the original plan, but the
+docker-systemd verification showed dbus-daemon dropping connections from `DynamicUser`
+services at the Hello stage (static users work; NSS resolution of the dynamic UID works;
+Debian 12, dbus 1.14), so the hardened web unit cannot rely on the bus at all. Three
+stat() calls answer the same question with no sandbox interplay, and the unit declares
+exactly one [Install] symlink so enablement is one path. The snapshot is consulted before
+the unit state: the unit check exists only to disambiguate a missing snapshot, and
+checking it first would break installs without systemd (the quickstart dev loop renders a
+fresh snapshot with no unit at all). Decision ladder, first match wins:
 
 1. `SECOND_HAND_CLIENTS_ENABLED=false` → absent (FR-016a).
 2. Configured chrony address not loopback/Unix-socket → absent (FR-020).
-3. Unit file not found (`UnitFileState` empty / unit unknown) → unavailable: "reader not
-   installed" (FR-019).
-4. `UnitFileState` disabled or masked → absent (FR-016b).
-5. Snapshot file fresh → render it (its own `status` may still carry an unavailable reason
+3. Snapshot file fresh → render it (its own `status` may still carry an unavailable reason
    the *reader* saw: chrony too old, client logging off, chronyd unreachable — FR-017).
-6. Snapshot stale → render marked stale with age (FR-018).
-7. Snapshot missing → unavailable: "reader not running" (FR-017).
+4. Snapshot stale → render marked stale with age (FR-018).
+5. Snapshot missing or invalid → ask systemd why:
+   a. `UnitFileState` disabled or masked → absent (FR-016b).
+   b. Unit file not found (`UnitFileState` empty / no usable systemctl) → unavailable:
+      "reader not installed" (FR-019).
+   c. Anything else → unavailable: "reader not running" (FR-017).
 
 `systemctl show` of unit properties is an unprivileged read over D-Bus; `RestrictAddressFamilies`
 already allows `AF_UNIX` and `ProtectSystem=strict` permits reading `/run`. **Must verify**
@@ -92,7 +104,7 @@ enabled-but-never-wrote reader renders as absent rather than unavailable (and re
 narrowing in the spec).
 
 An `enabled` but manually stopped reader (`systemctl stop`, no disable) falls through to
-step 7 and shows unavailable — it will return on reboot, so it is not "off".
+rung 5c and shows unavailable — it will return on reboot, so it is not "off".
 
 ## R4: One off switch honoured by both components
 

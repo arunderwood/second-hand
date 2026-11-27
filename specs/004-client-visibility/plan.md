@@ -83,9 +83,10 @@ addresses from page and endpoints (FR-021), remote-chronyd suppression (FR-020),
 enrichment/lookups on client IPs (FR-009). Residual risk — a reachable dashboard shows LAN
 client IPs by default — is the maintainer's accepted, documented position (decision.md).
 
-**Injection review**: both subprocess argvs are module constants; no user data ever reaches
-`subprocess`, satisfying the constitution's prohibition. The dashboard's one new subprocess
-(`systemctl show`, fixed argv, R3) is likewise constant.
+**Injection review**: the reader's two chronyc argvs are module constants; no user data
+ever reaches `subprocess`, satisfying the constitution's prohibition. The dashboard side
+gained no subprocess at all — the reader unit's state is read from systemd's on-disk
+layout with stat() calls (R3).
 
 ### Post-design re-check (after Phase 1)
 
@@ -131,7 +132,9 @@ src/second_hand/
 └── static/js/dashboard.js   # + clients refresh on the existing cycle
 
 debian/
-├── second-hand-reader.service   # NEW hardened reader unit
+├── second-hand.second-hand-reader.service  # NEW hardened reader unit
+│                                #   (debhelper's <package>.<name>.service form,
+│                                #    installed via dh_installsystemd --name)
 ├── second-hand.default          # NEW conffile → /etc/default/second-hand
 ├── second-hand.service          # + SupplementaryGroups, EnvironmentFile
 ├── control                      # description mentions the reader

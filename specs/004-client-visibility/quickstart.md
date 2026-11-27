@@ -62,8 +62,9 @@ Expected new checks, per distro image (Debian 12/13, Ubuntu 24.04/26.04):
 2. **Handoff permissions** (R2 verification): inside the container, the web unit's user can
    read `/run/second-hand-reader/snapshot.json`, cannot write it, and other users cannot
    read it.
-3. **Unit-state query** (R3 verification): `systemctl show second-hand-reader` works from
-   within the hardened web service.
+3. **Unit-state check** (R3 verification): a stopped-but-enabled reader renders as
+   "reader not running" — the hardened web service classified the unit from its
+   on-disk state.
 4. **Off route a**: set `SECOND_HAND_CLIENTS_ENABLED=false` in `/etc/default/second-hand`,
    restart both; panel and `/api/clients` absent (404), reader inactive.
 5. **Off route b**: `systemctl disable --now second-hand-reader`; same assertions (FR-016).

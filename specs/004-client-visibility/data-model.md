@@ -17,9 +17,9 @@ NTS-KE hits > 0). Monitoring-only rows are dropped before this model is built.
 | `address` | str | 1 | IPv4/IPv6 literal, validated as an address; shown as-is (FR-009) |
 | `ntp_hits` | int ≥ 0 | 2 | |
 | `ntp_drops` | int ≥ 0 | 3 | rate-limited/dropped requests |
-| `ntp_interval` | int | 4 | log2 seconds, -1 = unknown (chrony convention); displayed and bucketed as 2^n seconds, rendered "unknown" when -1 |
-| `ntp_interval_limited` | int | 5 | interval after rate limiting, -1 = none |
-| `last_ntp_seconds` | int ≥ 0 \| None | 6 | seconds since last NTP request |
+| `ntp_interval` | int \| None | 4 | log2 seconds (negative = sub-second), None = unknown; chronyc's CSV sentinel is int8 127, mapped to None by the parser (-1 cannot be the sentinel: 2^-1 is a real half-second interval). Displayed and bucketed as 2^n seconds, rendered "unknown" when None |
+| `ntp_interval_limited` | int \| None | 5 | interval after rate limiting, None = not limited (CSV sentinel 127) |
+| `last_ntp_seconds` | int ≥ 0 \| None | 6 | seconds since last NTP request; chronyc's "never" sentinel is uint32 max, mapped to None |
 | `nts_ke_hits` | int ≥ 0 | 7 | |
 | `nts_ke_drops` | int ≥ 0 | 8 | |
 | `last_nts_ke_seconds` | int ≥ 0 \| None | 10 | |
