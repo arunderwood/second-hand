@@ -17,7 +17,7 @@ NTS-KE hits > 0). Monitoring-only rows are dropped before this model is built.
 | `address` | str | 1 | IPv4/IPv6 literal, validated as an address; shown as-is (FR-009) |
 | `ntp_hits` | int ≥ 0 | 2 | |
 | `ntp_drops` | int ≥ 0 | 3 | rate-limited/dropped requests |
-| `ntp_interval` | int | 4 | log2 seconds, -1 = unknown (chrony convention) |
+| `ntp_interval` | int | 4 | log2 seconds, -1 = unknown (chrony convention); displayed and bucketed as 2^n seconds, rendered "unknown" when -1 |
 | `ntp_interval_limited` | int | 5 | interval after rate limiting, -1 = none |
 | `last_ntp_seconds` | int ≥ 0 \| None | 6 | seconds since last NTP request |
 | `nts_ke_hits` | int ≥ 0 | 7 | |
@@ -41,7 +41,7 @@ Aggregates over **all** qualifying records (not just the published top-N).
 | `rate_limited_clients` | int ≥ 0 | records with `ntp_drops > 0` (FR-003) |
 | `total_dropped_requests` | int ≥ 0 | sum of `ntp_drops` (FR-003) |
 | `last_seen_buckets` | dict[str, int] | keys `1m`, `1h`, `1d`, `older` (FR-002) |
-| `poll_interval_buckets` | dict[str, int] | keys `≤64s`, `≤1024s`, `>1024s`, `unknown` (FR-002) |
+| `poll_interval_buckets` | dict[str, int] | keys `<=64s`, `<=1024s`, `>1024s`, `unknown` — ASCII, exactly as in the snapshot JSON (FR-002) |
 
 Bucket keys are a fixed enum in the model, so the panel and the API never disagree on them.
 

@@ -208,11 +208,14 @@ is not running; upgrade the package and it stays off (spec US3; quickstart §4.4
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T031 [P] Operator documentation in `README.md`: the Clients panel, both off
-      switches, the table-only switch, `/etc/default/second-hand`, and the data caveats
+      switches, the table-only switch, `/etc/default/second-hand`,
+      `SECOND_HAND_CLIENTS_SNAPSHOT_PATH` and `SECOND_HAND_READER_INTERVAL` (constitution:
+      every configuration option documented), and the data caveats
       (rolling log, counts can fall, chronyd restarts reset totals)
-- [ ] T032 [P] Add a dashboard memory assertion to `docker/test-deb.sh`
+- [ ] T032 [P] Add memory assertions to `docker/test-deb.sh`
       (`systemctl show -p MemoryCurrent second-hand.service` under 100 MB with the
-      feature active — SC-004's other half)
+      feature active — SC-004's other half; `second-hand-reader.service` under its own
+      small ceiling, so the plan's combined-footprint claim is measured, not assumed)
 - [ ] T033 Run the full quickstart.md validation (unit, dev loop, integration, deb
       matrix, layout) plus the pre-commit checks (`ruff format`, `ruff check`,
       `ty check src/`, `pytest`), and reconcile any drift between the artifacts and
