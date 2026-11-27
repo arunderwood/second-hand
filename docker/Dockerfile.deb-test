@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure chrony for testing (local reference clock)
-RUN echo "local stratum 10" >> /etc/chrony/chrony.conf
+# Configure chrony for testing: local reference clock, and NTP service for
+# loopback so the clients tests can generate real client traffic.
+RUN echo "local stratum 10" >> /etc/chrony/chrony.conf \
+    && echo "allow 127.0.0.1" >> /etc/chrony/chrony.conf
 
 # Ubuntu 26.04's chrony.service skips itself inside containers
 # (ConditionVirtualization=!container). An empty assignment clears the list.

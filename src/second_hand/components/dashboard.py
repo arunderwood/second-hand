@@ -2,9 +2,11 @@
 
 from htpy import Element, div, h1, p
 
+from second_hand.schemas import ClientsResponse
 from second_hand.services.chrony import ChronyData, EnrichedSource
 
 from .base import base_layout
+from .clients import clients_section
 from .error import error_banner
 from .rtc import rtc_section
 from .sources import sources_table
@@ -17,6 +19,7 @@ def dashboard_page(
     chrony_data: ChronyData,
     enriched_sources: list[EnrichedSource] | None = None,
     refresh_interval: int = 30,
+    clients: ClientsResponse | None = None,
 ) -> Element:
     """Create the main dashboard page.
 
@@ -25,13 +28,16 @@ def dashboard_page(
         chrony_data: Chrony data to render.
         enriched_sources: Optional enriched sources with geo data.
         refresh_interval: Seconds between dashboard.js data refreshes.
+        clients: Client visibility data, or None when the feature is off or
+            chronyd is remote — then the panel is absent, with no placeholder
+            (FR-016, FR-020).
 
     Returns:
         Complete HTML dashboard page as an htpy Element.
     """
     content = div(".dashboard", data_refresh_interval=str(refresh_interval))[
         _header(version),
-        _main_content(chrony_data, enriched_sources),
+        _main_content(chrony_data, enriched_sources, clients),
         _footer(version),
     ]
     return base_layout("second-hand Dashboard", content)
@@ -46,7 +52,9 @@ def _header(version: str) -> Element:
 
 
 def _main_content(
-    data: ChronyData, enriched_sources: list[EnrichedSource] | None = None
+    data: ChronyData,
+    enriched_sources: list[EnrichedSource] | None = None,
+    clients: ClientsResponse | None = None,
 ) -> Element:
     """Create the main content area with all chrony sections."""
     sections: list[Element] = []
@@ -75,6 +83,12 @@ def _main_content(
             sections.append(stats_table(data.source_stats, hostnames))
         # RTC section handles None gracefully
         sections.append(rtc_section(data.rtc, data.rtc_error))
+
+    # Outside is_connected: the reader has its own chronyd channel, so client
+    # data (or its unavailable state) renders even when the dashboard's own
+    # connection is down (FR-017).
+    if clients is not None:
+        sections.append(clients_section(clients))
 
     return div(".main-content")[sections]
 

@@ -1,10 +1,11 @@
 """Response models for the JSON API."""
 
 import time
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel
 
+from second_hand.clients_model import ClientRecord, ClientSummary, ServerTotals
 from second_hand.presentation import (
     mode_display,
     reachability_percent,
@@ -12,9 +13,15 @@ from second_hand.presentation import (
     state_label,
 )
 from second_hand.services.chrony import EnrichedSource
-from second_hand.utils import format_offset, format_reachability_visual
+from second_hand.services.clients import ClientsState
+from second_hand.utils import (
+    format_duration,
+    format_offset,
+    format_poll_interval,
+    format_reachability_visual,
+)
 
-__all__ = ["ApiError", "SourceOut", "SourcesResponse"]
+__all__ = ["ApiError", "ClientOut", "ClientsResponse", "SourceOut", "SourcesResponse"]
 
 
 class SourceOut(BaseModel):
@@ -100,6 +107,86 @@ class SourcesResponse(BaseModel):
             sources=[SourceOut.from_enriched(es, now) for es in sources],
             timestamp=now,
             is_synchronized=is_synchronized,
+            refresh_interval=refresh_interval,
+        )
+
+
+class ClientOut(ClientRecord):
+    """A client record with its display strings precomputed.
+
+    The server's formatting rules are the only ones: dashboard.js writes these
+    strings into cells as-is, exactly like the sources table.
+    """
+
+    poll_display: str
+    last_seen_display: str
+    nts_ke_display: str
+
+    @classmethod
+    def from_record(cls, record: ClientRecord) -> Self:
+        return cls(
+            **dict(record),
+            poll_display=format_poll_interval(record.ntp_interval),
+            last_seen_display=f"{format_duration(record.last_seen_seconds)} ago",
+            # NTS-KE connections are shown where present (FR-005).
+            nts_ke_display=(str(record.nts_ke_hits) if record.nts_ke_hits > 0 else "—"),
+        )
+
+
+class ClientsResponse(BaseModel):
+    """Body of ``GET /api/clients``; the panel renders from the same build.
+
+    ``reason`` is the reader's enum plus the two dashboard-side values
+    ``reader_not_installed`` and ``reader_not_running``.
+    """
+
+    status: Literal["ok", "unavailable"]
+    reason: str | None
+    reason_detail: str | None
+    taken_at: int | None
+    age_seconds: int | None
+    stale: bool
+    summary: ClientSummary | None
+    totals: ServerTotals | None
+    table_enabled: bool
+    clients: list[ClientOut]
+    clients_truncated: int
+    refresh_interval: int
+
+    @classmethod
+    def build(
+        cls,
+        state: ClientsState,
+        *,
+        table_enabled: bool,
+        refresh_interval: int,
+    ) -> Self:
+        """Wrap an availability state with what only the dashboard knows.
+
+        FR-021 is enforced right here, at the serialization boundary: with the
+        table off, no client record — and so no client address — ever leaves
+        the server, on this response or the page rendered from it.
+        """
+        snapshot = state.snapshot
+        include_clients = table_enabled and snapshot is not None
+        return cls(
+            status=state.status,
+            reason=state.reason,
+            reason_detail=state.reason_detail,
+            taken_at=snapshot.taken_at if snapshot else None,
+            age_seconds=state.age_seconds,
+            stale=state.stale,
+            summary=snapshot.summary if snapshot else None,
+            totals=snapshot.totals if snapshot else None,
+            table_enabled=table_enabled,
+            clients=(
+                [ClientOut.from_record(record) for record in snapshot.clients]
+                if include_clients and snapshot
+                else []
+            ),
+            clients_truncated=(
+                snapshot.clients_truncated if include_clients and snapshot else 0
+            ),
             refresh_interval=refresh_interval,
         )
 

@@ -32,8 +32,10 @@ from pychrony.testing import (
     make_tracking,
 )
 
+from second_hand.clients_model import ClientRecord, ReaderSnapshot
 from second_hand.main import app, get_geoip
 from second_hand.services.chrony import ChronyData
+from second_hand.services.clients import ClientsState
 from second_hand.services.geoip import GeoIPService
 
 if TYPE_CHECKING:
@@ -118,7 +120,7 @@ _GRID_DISPLAY = "getComputedStyle(document.querySelector('.stats-grid')).display
 _FIND_SHORT_ROWS = """
 () => {
   const problems = [];
-  const grids = document.querySelectorAll('.stats-grid, .rtc-stats');
+  const grids = document.querySelectorAll('.stats-grid, .rtc-stats, .clients-grid');
   if (grids.length === 0) {
     problems.push('no grids to measure');
   }
@@ -323,3 +325,183 @@ def test_ref_time_stays_on_one_line(
         for width in WIDTHS:
             page.set_viewport_size({"width": width, "height": 900})
             assert page.evaluate(_REF_TIME_LINES) == 1, f"wrapped at {width}px"
+
+
+# =============================================================================
+# Clients panel
+# =============================================================================
+
+# The longest form an address takes: full, uncompressed IPv6.
+_FULL_IPV6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+
+
+def make_client_record(address: str, index: int = 0) -> ClientRecord:
+    return ClientRecord(
+        address=address,
+        ntp_hits=52020 + index,
+        ntp_drops=17,
+        ntp_interval=6,
+        ntp_interval_limited=None,
+        last_ntp_seconds=index,
+        nts_ke_hits=3,
+        nts_ke_drops=0,
+        last_nts_ke_seconds=None,
+        is_nts=True,
+        last_seen_seconds=index,
+    )
+
+
+def make_clients_state(records: list[ClientRecord], truncated: int = 0) -> ClientsState:
+    nts = sum(1 for r in records if r.is_nts)
+    snapshot = ReaderSnapshot(
+        schema_version=1,
+        taken_at=int(time.time()),
+        interval=30,
+        status="ok",
+        summary={
+            "total_clients": len(records) + truncated,
+            "nts_clients": nts,
+            "ntp_clients": len(records) + truncated - nts,
+            "rate_limited_clients": 1,
+            "total_dropped_requests": 17,
+            "last_seen_buckets": {"1m": len(records), "1h": 0, "1d": 0, "older": 0},
+            "poll_interval_buckets": {
+                "<=64s": len(records),
+                "<=1024s": 0,
+                ">1024s": 0,
+                "unknown": 0,
+            },
+        },
+        totals={
+            "ntp_received": 180211,
+            "ntp_dropped": 42,
+            "cmd_received": 9100,
+            "cmd_dropped": 0,
+            "log_records_dropped": 3,
+            "nts_ke_accepted": 31,
+            "nts_ke_dropped": 0,
+            "ntp_authenticated": 5500,
+            "ntp_interleaved": 0,
+        },
+        clients=records,
+        clients_truncated=truncated,
+    )
+    return ClientsState(
+        status="ok",
+        reason=None,
+        reason_detail=None,
+        snapshot=snapshot,
+        age_seconds=7,
+        stale=False,
+    )
+
+
+@contextmanager
+def open_dashboard_with_clients(
+    browser: "Browser",
+    url: str,
+    state: ClientsState,
+    **page_options: Any,
+) -> Iterator["Page"]:
+    with (
+        patch("second_hand.main.get_clients_state", return_value=state),
+        open_dashboard(browser, url, TYPICAL, **page_options) as page,
+    ):
+        yield page
+
+
+# The address text must stay inside its own cell, measured like the stat
+# boxes: the cell's box stretches to the column, so only a Range shows text
+# escaping it.
+_FIND_CLIENT_CELL_OVERFLOW = """
+() => {
+  const problems = [];
+  const root = document.documentElement;
+  if (root.scrollWidth > root.clientWidth) {
+    problems.push(`page ${root.scrollWidth - root.clientWidth}px too wide`);
+  }
+  const cells = document.querySelectorAll('.clients-table td');
+  if (cells.length === 0) {
+    problems.push('no client cells to measure');
+  }
+  const range = document.createRange();
+  for (const cell of cells) {
+    const right = cell.getBoundingClientRect().right;
+    range.selectNodeContents(cell);
+    const excess = range.getBoundingClientRect().right - right;
+    if (excess > 0.5) {
+      problems.push(`"${cell.textContent}" ${Math.round(excess)}px out of its cell`);
+    }
+  }
+  return problems;
+}
+"""
+
+
+def test_ipv6_addresses_stay_in_their_cells(
+    browser: "Browser",
+    server_url: str,
+    offline_geoip: None,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Full IPv6 addresses never widen the page or escape their cells."""
+    records = [make_client_record(_FULL_IPV6, i) for i in range(5)]
+    with open_dashboard_with_clients(
+        browser, server_url, make_clients_state(records)
+    ) as page:
+        assert (
+            problems_by_width(page, _FIND_CLIENT_CELL_OVERFLOW, WIDTHS, request) == {}
+        )
+
+
+def test_clients_grid_rows_stay_full(
+    browser: "Browser",
+    server_url: str,
+    offline_geoip: None,
+    request: pytest.FixtureRequest,
+) -> None:
+    """The aggregates grid divides evenly at every width."""
+    records = [make_client_record(_FULL_IPV6, i) for i in range(3)]
+    with open_dashboard_with_clients(
+        browser, server_url, make_clients_state(records)
+    ) as page:
+        assert problems_by_width(page, _FIND_SHORT_ROWS, WIDTHS, request) == {}
+
+
+def test_capped_table_shows_the_more_line(
+    browser: "Browser", server_url: str, offline_geoip: None
+) -> None:
+    """A capped list says how many clients exist beyond it (FR-006)."""
+    records = [make_client_record(f"192.0.2.{i}", i) for i in range(1, 11)]
+    with open_dashboard_with_clients(
+        browser, server_url, make_clients_state(records, truncated=3990)
+    ) as page:
+        more = page.locator(".clients-more")
+        assert more.is_visible()
+        assert "3990 more clients" in more.inner_text()
+        assert page.locator(".clients-table tbody tr").count() == 10
+
+
+def test_4000_clients_loads_within_budget(
+    browser: "Browser", server_url: str, offline_geoip: None
+) -> None:
+    """SC-004: a full default-size log keeps the page under two seconds."""
+    records = [
+        make_client_record(f"2001:db8:{i // 256:x}::{i % 256:x}", i)
+        for i in range(4000)
+    ]
+    state = make_clients_state(records)
+    with (
+        patch("second_hand.main.get_clients_state", return_value=state),
+        patch("second_hand.main.fetch_chrony_data", return_value=TYPICAL),
+    ):
+        page = browser.new_page()
+        try:
+            started = time.monotonic()
+            response = page.goto(server_url)
+            elapsed = time.monotonic() - started
+            assert response is not None and response.ok
+            assert page.locator(".clients-table tbody tr").count() == 4000
+            assert elapsed < 2.0, f"page took {elapsed:.2f}s"
+        finally:
+            page.close()

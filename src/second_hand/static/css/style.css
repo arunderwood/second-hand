@@ -789,6 +789,137 @@ tr.source-selected {
 }
 
 /* =============================================================================
+   CLIENTS PANEL
+   ============================================================================= */
+
+.clients-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.clients-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.clients-stale-badge {
+  padding: 0 var(--spacing-xs);
+  border: 1px solid var(--terminal-amber);
+  border-radius: var(--radius-sm);
+  color: var(--terminal-amber);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.clients-note {
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-left: 2px solid var(--terminal-amber);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Four boxes in four columns (two on phones): rows always divide evenly,
+   which the layout tests enforce. Separate from .stats-grid, whose five
+   columns would leave a four-box row short. */
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 1px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.clients-buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.bucket-group-title {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--spacing-2xs);
+}
+
+.bucket-row {
+  display: grid;
+  grid-template-columns: 6rem auto minmax(2ch, max-content);
+  gap: var(--spacing-sm);
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.bucket-label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Text bars: the strict CSP (style-src 'self') rules out inline width
+   styles, and block characters keep the terminal look. */
+.bucket-bar {
+  font-family: var(--font-mono);
+  color: var(--terminal-green);
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.bucket-count {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--terminal-green);
+  text-align: right;
+}
+
+.clients-totals {
+  margin-bottom: var(--spacing-md);
+}
+
+.clients-totals-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-lg);
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.totals-extra [data-totals-field] {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+/* Full IPv6 addresses must stay in their cells (layout-tested): a long token
+   has no spaces, so it may break anywhere. */
+.clients-table .client-address {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.clients-table-empty {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.clients-more {
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* =============================================================================
    RESPONSIVE
    ============================================================================= */
 
@@ -807,7 +938,8 @@ tr.source-selected {
   }
 
   .stats-grid,
-  .rtc-stats {
+  .rtc-stats,
+  .clients-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

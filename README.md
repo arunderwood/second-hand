@@ -15,6 +15,8 @@ It reads live data from a local `chronyd` and shows:
 - Time source overview with reachability indicators
 - Source statistics including offset, jitter, and skew
 - RTC (real-time clock) monitoring when available
+- NTP client visibility when chronyd serves time: client counts, poll
+  activity, rate limiting, server-wide totals, and a per-client table
 
 ## Install
 
@@ -63,6 +65,62 @@ chronyd enables the command port on localhost by default and Debian's shipped
 `cmdport 0` the dashboard cannot read anything — either re-enable the command
 port, or point `SECOND_HAND_CHRONY_ADDRESS` at a socket path the service user
 can reach.
+
+### The Clients panel
+
+When chronyd serves time to other machines, the dashboard shows an
+**NTP Clients** panel: how many clients were recently seen (split NTS/NTP),
+how recently and how often they poll, rate-limited and dropped requests,
+chronyd's server-wide totals, and a table of the most recently seen clients.
+It works out of the box on a packaged install — no chrony configuration is
+needed.
+
+Reading per-client data from chronyd needs privileges the network-facing web
+service deliberately does not have. The package therefore ships a second,
+separately hardened service, `second-hand-reader`, which runs as chrony's own
+user, queries chronyd read-only on a fixed 30-second cycle, and publishes a
+snapshot file (`/run/second-hand-reader/snapshot.json`) that the web service
+can read but not write. Reads never change chronyd's counters or
+configuration.
+
+Three caveats about what the numbers mean:
+
+- chronyd's client log is a rolling record of *recently seen* clients, not a
+  complete census; when the log fills, the oldest entries are recycled and
+  counts can go down. The panel says so when it happens.
+- Server totals reset to zero when chronyd restarts.
+- Hosts that only sent monitoring requests (including this dashboard's own
+  polling) are never counted or listed as clients.
+
+Settings live in `/etc/default/second-hand`, which both services read and
+which survives package upgrades:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SECOND_HAND_CLIENTS_ENABLED` | `true` | The whole feature: panel, API, and reader. `false` removes client data everywhere and the reader exits immediately. |
+| `SECOND_HAND_CLIENTS_TABLE` | `true` | The per-client table. `false` keeps aggregates and totals but removes individual client addresses from the page and the API. |
+| `SECOND_HAND_CLIENTS_MAX_ROWS` | `100` | How many clients the table lists (1–10000), most recently seen first. |
+| `SECOND_HAND_READER_INTERVAL` | `30` | Seconds between the reader's chronyd queries (minimum 10). |
+| `SECOND_HAND_CLIENTS_SNAPSHOT_PATH` | `/run/second-hand-reader/snapshot.json` | Where the dashboard looks for the reader's snapshot; mainly for development setups. |
+
+After changing the file, restart both services:
+
+```bash
+sudo systemctl restart second-hand second-hand-reader
+```
+
+Turning the feature off also works without touching any file, and equally
+survives upgrades:
+
+```bash
+sudo systemctl disable --now second-hand-reader
+```
+
+Either route removes the panel and all client data; which one you use is a
+matter of taste. The panel is also absent whenever
+`SECOND_HAND_CHRONY_ADDRESS` points at another machine: the reader only ever
+reads the local chronyd, so its data would be misleading next to a remote
+server's statistics.
 
 ### From source
 

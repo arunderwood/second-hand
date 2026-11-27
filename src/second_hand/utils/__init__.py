@@ -8,6 +8,7 @@ __all__ = [
     "format_duration",
     "format_frequency",
     "format_offset",
+    "format_poll_interval",
     "format_reachability",
     "format_reachability_visual",
     "format_std_dev",
@@ -83,6 +84,26 @@ def format_duration(seconds: int) -> str:
         return f"{seconds // 60}m {seconds % 60}s"
     else:
         return f"{seconds // 3600}h {(seconds % 3600) // 60}m"
+
+
+def format_poll_interval(interval_log2: int | None) -> str:
+    """Format a log2-seconds poll interval for display.
+
+    chrony stores poll intervals as log2 seconds; 2**n is the value a person
+    recognises. n can be negative (sub-second polling), and None means chrony
+    does not know the interval.
+
+    Args:
+        interval_log2: Interval as log2 seconds, or None when unknown.
+
+    Returns:
+        Human-readable interval string.
+    """
+    if interval_log2 is None:
+        return "unknown"
+    if interval_log2 < 0:
+        return f"{2**interval_log2:g}s"
+    return format_duration(2**interval_log2)
 
 
 def format_reachability(value: int) -> str:
