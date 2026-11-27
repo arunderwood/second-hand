@@ -43,17 +43,6 @@ RUN apt-get update \
 # Ensure 'chrony' group exists (Debian 13+ uses '_chrony' instead)
 RUN getent group chrony || groupadd --system chrony
 
-# chronyd's stock AppArmor profile predates fine-grained af_unix mediation:
-# on kernels that enforce it (GitHub's arm64 runners, 7.x) the profile denies
-# chronyd's replies to chronyc's per-client sockets under /run/chrony
-# ("DENIED operation=sendmsg profile=/usr/sbin/chronyd"), breaking chronyc
-# for every non-root user. This privileged container loads the distro's
-# profiles into the host kernel at boot, so disable chronyd's; the profile
-# itself is the distro's bug to fix, not what these tests exercise.
-RUN if [ -f /etc/apparmor.d/usr.sbin.chronyd ]; then \
-        mkdir -p /etc/apparmor.d/disable \
-        && ln -sf /etc/apparmor.d/usr.sbin.chronyd /etc/apparmor.d/disable/; \
-    fi
 
 # Copy .deb package
 COPY second-hand_*.deb /tmp/

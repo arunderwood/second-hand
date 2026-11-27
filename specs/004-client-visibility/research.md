@@ -33,7 +33,8 @@ af_unix mediation; on kernels that enforce it (seen on 7.x) the profile denies c
 replies to chronyc's per-client sockets, so chronyc fails for every non-root user and
 falls back to UDP, where these queries are 501. That is the distro profile's bug, not
 this feature's; on such a host the reader degrades honestly to `permission_denied`. The
-deb-test image disables the chronyd profile for this reason.
+deb test unloads the CI host's chronyd profile for this reason — the profile attaches by
+binary path, so through the shared kernel it confines the container's chronyd too.
 
 **Alternatives considered**:
 - *pychrony extension* (meta/time-style protocol implementation): keeps Principle IV

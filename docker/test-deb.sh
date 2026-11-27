@@ -20,6 +20,20 @@ READER_SECURITY_THRESHOLD="${READER_SECURITY_THRESHOLD:-45}"
 PLATFORM=$(docker inspect second-hand-deb-test:latest --format '{{.Architecture}}')
 echo "Detected image platform: $PLATFORM"
 
+# The HOST's AppArmor profile for chronyd attaches by binary path, so through
+# the shared kernel it also confines the chronyd inside this privileged
+# container. On kernels with fine-grained af_unix mediation (GitHub's arm64
+# runners) that stock profile denies chronyd's replies to chronyc's
+# per-client sockets ("DENIED operation=sendmsg profile=/usr/sbin/chronyd"),
+# breaking chronyc for every non-root user in the container. Unload it for
+# the duration of this ephemeral runner; hosts without the profile, sudo, or
+# AppArmor are untouched.
+if [ -f /etc/apparmor.d/usr.sbin.chronyd ] && sudo -n true 2>/dev/null; then
+    sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.chronyd 2>/dev/null \
+        && echo "Unloaded the host's chronyd AppArmor profile" \
+        || true
+fi
+
 echo "Starting systemd container..."
 docker run -d --name "$CONTAINER_NAME" \
     --platform "linux/$PLATFORM" \
