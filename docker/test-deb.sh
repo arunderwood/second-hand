@@ -316,7 +316,27 @@ clients_diagnostics() {
     docker exec "$CONTAINER_NAME" ls -la /run/chrony/ || true
     docker exec "$CONTAINER_NAME" journalctl -u chrony --no-pager -n 20 || true
     echo "--- diagnostics: bare chronyc as _chrony (no sandbox)"
-    docker exec "$CONTAINER_NAME" runuser -u _chrony -- chronyc -c -n clients -k; echo "rc=$?"
+    # The whole script runs under set -e, and most of these probes are
+    # expected to fail here: every line must be guarded or the dump cuts off
+    # at the first finding.
+    docker exec "$CONTAINER_NAME" runuser -u _chrony -- chronyc -c -n clients -k || echo "rc=$?"
+    echo "--- diagnostics: bind and connect split (exact errno)"
+    docker exec "$CONTAINER_NAME" runuser -u _chrony -- python3 -c '
+import os, socket
+os.makedirs("/run/chrony/diagprobe/x", mode=0o711, exist_ok=True)
+s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+try:
+    s.bind("/run/chrony/diagprobe/x/sock")
+    print("bind: ok")
+except OSError as e:
+    print("bind:", e)
+try:
+    s.connect("/run/chrony/chronyd.sock")
+    print("connect: ok")
+except OSError as e:
+    print("connect:", e)
+' || true
+    docker exec "$CONTAINER_NAME" sh -c 'rm -rf /run/chrony/diagprobe' || true
     echo "--- diagnostics: confinement and denials"
     docker exec "$CONTAINER_NAME" cat /proc/1/attr/current 2>/dev/null || true
     sudo dmesg 2>/dev/null | grep -iE 'apparmor|DENIED' | tail -15 || true
